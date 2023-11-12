@@ -1,16 +1,14 @@
-"use strict";
+import Gio from 'gi://Gio';
+import Gtk from 'gi://Gtk';
+import GObject from 'gi://GObject';
+import {ExtensionPreferences, gettext as _} from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
 
-const Gio = imports.gi.Gio;
-const Gtk = imports.gi.Gtk;
-
-const ExtensionUtils = imports.misc.extensionUtils;
-const Me = ExtensionUtils.getCurrentExtension();
-
-function init() {}
-
-function buildPrefsWidget() {
-  const gschema = Gio.SettingsSchemaSource.new_from_directory(
-    Me.dir.get_child("schemas").get_path(),
+const ImposkPreferences = GObject.registerClass(
+class ImposkPreferences extends Gtk.Grid {
+    _init(extension) {
+        super._init({orientation: Gtk.Orientation.VERTICAL, spacing: 30});
+        const gschema = Gio.SettingsSchemaSource.new_from_directory(
+    this.dir.get_child("schemas").get_path(),
     Gio.SettingsSchemaSource.get_default(),
     false
   );
@@ -23,7 +21,7 @@ function buildPrefsWidget() {
   });
 
   // https://gjs-docs.gnome.org/gtk40/gtk.widget#index-properties
-  const prefsWidget = new Gtk.Grid({
+  prefsWidget = new Gtk.Grid({
     margin_top: 24,
     margin_bottom: 24,
     margin_start: 24,
@@ -159,5 +157,13 @@ function buildPrefsWidget() {
   );
   prefsWidget.attach(inputShowStatusbarIcon, 1, 5, 1, 1);
 
-  return prefsWidget;
+    }
+});
+
+export default class DockPreferences extends ExtensionPreferences {
+    getPreferencesWidget() {
+        return new ImposkPreferences(this);
+    }
 }
+
+    

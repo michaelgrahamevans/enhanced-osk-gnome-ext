@@ -1,15 +1,23 @@
-"use strict";
-const { Gio, GLib, St, Clutter, GObject } = imports.gi;
-const Main = imports.ui.main;
-const Keyboard = imports.ui.keyboard;
-const Key = Keyboard.Key;
-const PanelMenu = imports.ui.panelMenu;
-const ExtensionUtils = imports.misc.extensionUtils;
-const Me = ExtensionUtils.getCurrentExtension();
+//import { Gio, GLib, St, Clutter, GObject } from 'gi://';
+import Gio from 'gi://Gio';
+import GLib from 'gi://GLib';
+import St from 'gi://St';
+import Clutter from 'gi://Clutter';
+import GObject from 'gi://GObject';
+import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
+import * as Main from 'resource:///org/gnome/shell/ui/main.js';
+import * as Keyboard from 'resource:///org/gnome/shell/ui/keyboard.js';
+import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
+import * as Me from './extension.js';
 
 const A11Y_APPLICATIONS_SCHEMA = "org.gnome.desktop.a11y.applications";
 const KEY_RELEASE_TIMEOUT = 100;
 
+
+//check how to get metadata
+
+
+let extensionObject, extensionSettings;
 let _oskA11yApplicationsSettings;
 let backup_lastDeviceIsTouchScreen;
 let backup_relayout;
@@ -34,7 +42,8 @@ let OSKIndicator = GObject.registerClass(
   { GTypeName: "OSKIndicator" },
   class OSKIndicator extends PanelMenu.Button {
     _init() {
-      super._init(0.0, `${Me.metadata.name} Indicator`, false);
+        //super._init(0.0, `${Me.metadata.name} Indicator`, false);
+        super._init(0.0, `Nometadata Indicator`, false);
 
       let icon = new St.Icon({
         icon_name: "input-keyboard-symbolic",
@@ -51,8 +60,9 @@ let OSKIndicator = GObject.registerClass(
         }
 
         // Don't open extension prefs if in unlock-dialog session mode
-        if (button == 3 && !isInUnlockDialogMode()) {
-          ExtensionUtils.openPrefs();
+          if (button == 3 && !isInUnlockDialogMode()) {
+              extensionObject = Extension.lookupByUUID('improvedosk@nick-shmyrev.dev');
+              extensionSettings = extensionObject.openPreferences();
         }
       });
 
@@ -69,23 +79,133 @@ function toggleOSK() {
   Main.keyboard.open(Main.layoutManager.bottomIndex);
 }
 
-// Overrides
-function override_lastDeviceIsTouchScreen() {
+
+// Extension
+export default class thisdoesmatternot extends Extension {
+init() {
+  settings = this.getSettings(
+    "org.gnome.shell.extensions.improvedosk"
+  );
+  backup_relayout = Keyboard.Keyboard.prototype["_relayout"];
+  backup_toggleModifier = Keyboard.Keyboard.prototype["_toggleModifier"];
+  backup_setActiveLayer = Keyboard.Keyboard.prototype["_setActiveLayer"];
+  backup_addRowKeys = Keyboard.Keyboard.prototype["_addRowKeys"];
+  backup_commitAction = Keyboard.Keyboard.prototype["_commitAction"];
+  backup_toggleDelete = Keyboard.Keyboard.prototype["_toggleDelete"];
+
+  backup_lastDeviceIsTouchScreen =
+    Keyboard.KeyboardManager._lastDeviceIsTouchscreen;
+
+  //backup_getCurrentGroup =
+  //  Keyboard.KeyboardController.prototype["getCurrentGroup"];
+
+  currentSeat = Clutter.get_default_backend().get_default_seat();
+  backup_touchMode = currentSeat.get_touch_mode;
+}
+
+enable() {
+    this.init()
+  _oskA11yApplicationsSettings = new Gio.Settings({
+    schema_id: A11Y_APPLICATIONS_SCHEMA,
+  });
+
+  Main.layoutManager.removeChrome(Main.layoutManager.keyboardBox);
+
+  // Set up the indicator in the status area
+  if (settings.get_boolean("show-statusbar-icon")) {
+    _indicator = new OSKIndicator();
+    Main.panel.addToStatusArea("OSKIndicator", _indicator);
+  }
+
+  if (settings.get_boolean("force-touch-input")) {
+    currentSeat.get_touch_mode = () => true;
+  }
+
+  let KeyboardIsSetup = this.tryDestroyKeyboard();
+
+  this.enable_overrides();
+
+  settings.connect("changed::show-statusbar-icon", function () {
+    if (settings.get_boolean("show-statusbar-icon")) {
+      _indicator = new OSKIndicator();
+      Main.panel.addToStatusArea("OSKIndicator", _indicator);
+    } else if (_indicator !== null) {
+      _indicator.destroy();
+      _indicator = null;
+    }
+  });
+
+  settings.connect("changed::force-touch-input", function () {
+    if (settings.get_boolean("force-touch-input")) {
+      currentSeat.get_touch_mode = () => true;
+    } else {
+      currentSeat.get_touch_mode = backup_touchMode;
+    }
+  });
+
+  if (KeyboardIsSetup) {
+    Main.keyboard._setupKeyboard();
+  }
+
+  Main.layoutManager.addTopChrome(Main.layoutManager.keyboardBox, {
+    affectsStruts: settings.get_boolean("resize-desktop"),
+    trackFullscreen: false,
+  });
+}
+
+disable() {
+  Main.layoutManager.removeChrome(Main.layoutManager.keyboardBox);
+
+  currentSeat.get_touch_mode = backup_touchMode;
+
+  let KeyboardIsSetup = this.tryDestroyKeyboard();
+
+  // Remove indicator if it exists
+  if (_indicator instanceof OSKIndicator) {
+    _indicator.destroy();
+    _indicator = null;
+  }
+
+  settings = null;
+
+  if (keyReleaseTimeoutId) {
+    GLib.Source.remove(keyReleaseTimeoutId);
+    keyReleaseTimeoutId = null;
+  }
+
+  this.disable_overrides();
+
+  if (KeyboardIsSetup) {
+    Main.keyboard._setupKeyboard();
+  }
+  Main.layoutManager.addTopChrome(Main.layoutManager.keyboardBox);
+}
+    
+getModifiedLayouts() {
+  const modifiedLayoutsPath = this.dir
+    .get_child("data")
+    .get_child("gnome-shell-osk-layouts.gresource")
+    .get_path();
+  return Gio.Resource.load(modifiedLayoutsPath);
+ }
+
+    // Overrides
+override_lastDeviceIsTouchScreen() {
   if (!this._lastDevice) return false;
 
-  let deviceType = this._lastDevice.get_device_type();
-
+    let deviceType = this._lastDevice.get_device_type();
+    //console.log("osk: thisME = " + this);
   return settings.get_boolean("ignore-touch-input")
     ? false
     : deviceType == Clutter.InputDeviceType.TOUCHSCREEN_DEVICE;
 }
 
-function override_relayout() {
+override_relayout() {
   let monitor = Main.layoutManager.keyboardMonitor;
 
   if (!monitor) return;
 
-  this.width = monitor.width;
+    this.width = monitor.width;
 
   if (monitor.width > monitor.height) {
     this.height = (monitor.height * settings.get_int("landscape-height")) / 100;
@@ -94,7 +214,7 @@ function override_relayout() {
   }
 }
 
-function override_addRowKeys(keys, layout) {
+override_addRowKeys(keys, layout) {
   for (let i = 0; i < keys.length; ++i) {
     const key = keys[i];
     const {strings} = key;
@@ -163,7 +283,7 @@ function override_addRowKeys(keys, layout) {
   }
 }
 
-async function override_commitAction(keyval, str) {
+async override_commitAction(keyval, str) {
   if (this._modifiers.size === 0 && str !== '' &&
       keyval && this._oskCompletionEnabled) {
     if (await Main.inputMethod.handleVirtualKey(keyval))
@@ -177,7 +297,7 @@ async function override_commitAction(keyval, str) {
     if (keyval !== 0) {
       // If sending a key combination with a string char, use lowercase key value,
       // otherwise extension can't reliably input "Shift + [key]" combinations
-      // See https://github.com/nick-shmyrev/improved-osk-gnome-ext/issues/38#issuecomment-1466599579
+        // See https://github.com/nick-shmyrev/improved-osk-gnome-ext/issues/38#issuecomment-1466599579
       const keyvalToPress = str === '' ? keyval : Key.prototype._getKeyvalFromString(str.toLowerCase());
 
       this._forwardModifiers(this._modifiers, Clutter.EventType.KEY_PRESS);
@@ -195,7 +315,7 @@ async function override_commitAction(keyval, str) {
     this._setActiveLayer(0);
 }
 
-function override_toggleDelete(enabled) {
+override_toggleDelete(enabled) {
   if (this._deleteEnabled === enabled) return;
 
   this._deleteEnabled = enabled;
@@ -207,7 +327,7 @@ function override_toggleDelete(enabled) {
   }
 }
 
-function override_toggleModifier(key) {
+override_toggleModifier(key) {
   const { keyval, level } = key;
   const SHIFT_KEYVAL = '0xffe1';
   const isActive = this._modifiers.has(keyval);
@@ -217,7 +337,7 @@ function override_toggleModifier(key) {
   this._setModifierEnabled(keyval, !isActive);
 }
 
-function override_setActiveLayer(activeLevel) {
+override_setActiveLayer(activeLevel) {
   let activeGroupName = this._keyboardController.getCurrentGroup();
   let layers = this._groups[activeGroupName];
   let currentPage = layers[activeLevel];
@@ -248,7 +368,7 @@ function override_setActiveLayer(activeLevel) {
   this._emojiSelection.setRatio(...this._currentPage.getRatio());
 }
 
-function override_getCurrentGroup() {
+override_getCurrentGroup() {
   // Special case for Korean, if Hangul mode is disabled, use the 'us' keymap
   if (this._currentSource.id === 'hangul') {
       const inputSourceManager = InputSourceManager.getInputSourceManager();
@@ -264,28 +384,28 @@ function override_getCurrentGroup() {
   return this._currentSource.xkbId;
 }
 
-function enable_overrides() {
-  Keyboard.Keyboard.prototype["_relayout"] = override_relayout;
-  Keyboard.Keyboard.prototype["_toggleModifier"] = override_toggleModifier;
-  Keyboard.Keyboard.prototype["_setActiveLayer"] = override_setActiveLayer;
-  Keyboard.Keyboard.prototype["_addRowKeys"] = override_addRowKeys;
-  Keyboard.Keyboard.prototype["_commitAction"] = override_commitAction;
-  Keyboard.Keyboard.prototype["_toggleDelete"] = override_toggleDelete;
+enable_overrides() {
+  Keyboard.Keyboard.prototype["_relayout"] = this.override_relayout;
+  Keyboard.Keyboard.prototype["_toggleModifier"] = this.override_toggleModifier;
+  Keyboard.Keyboard.prototype["_setActiveLayer"] = this.override_setActiveLayer;
+  Keyboard.Keyboard.prototype["_addRowKeys"] = this.override_addRowKeys;
+  Keyboard.Keyboard.prototype["_commitAction"] = this.override_commitAction;
+  Keyboard.Keyboard.prototype["_toggleDelete"] = this.override_toggleDelete;
 
   Keyboard.KeyboardManager.prototype["_lastDeviceIsTouchscreen"] =
-    override_lastDeviceIsTouchScreen;
+    this.override_lastDeviceIsTouchScreen;
 
-  Keyboard.KeyboardController.prototype["getCurrentGroup"] =
-    override_getCurrentGroup;
+  //Keyboard.KeyboardController.prototype["getCurrentGroup"] =
+  //  override_getCurrentGroup;
 
   // Unregister original osk layouts resource file
-  getDefaultLayouts()._unregister();
+  this.getDefaultLayouts()._unregister();
 
   // Register modified osk layouts resource file
-  getModifiedLayouts()._register();
+  this.getModifiedLayouts()._register();
 }
 
-function disable_overrides() {
+disable_overrides() {
   Keyboard.Keyboard.prototype["_relayout"] = backup_relayout;
   Keyboard.Keyboard.prototype["_toggleModifier"] = backup_toggleModifier;
   Keyboard.Keyboard.prototype["_setActiveLayer"] = backup_setActiveLayer;
@@ -296,25 +416,18 @@ function disable_overrides() {
   Keyboard.KeyboardManager.prototype["_lastDeviceIsTouchscreen"] =
     backup_lastDeviceIsTouchScreen;
 
-  Keyboard.KeyboardController.prototype["getCurrentGroup"] =
-    backup_getCurrentGroup;
+  //Keyboard.KeyboardController.prototype["getCurrentGroup"] =
+  //  backup_getCurrentGroup;
 
   // Unregister modified osk layouts resource file
-  getModifiedLayouts()._unregister();
+  this.getModifiedLayouts()._unregister();
 
   // Register original osk layouts resource file
-  getDefaultLayouts()._register();
+  this.getDefaultLayouts()._register();
 }
 
-function getModifiedLayouts() {
-  const modifiedLayoutsPath = Me.dir
-    .get_child("data")
-    .get_child("gnome-shell-osk-layouts.gresource")
-    .get_path();
-  return Gio.Resource.load(modifiedLayoutsPath);
-}
 
-function getDefaultLayouts() {
+getDefaultLayouts() {
   return Gio.Resource.load(
     (GLib.getenv("JHBUILD_PREFIX") || "/usr") +
       "/share/gnome-shell/gnome-shell-osk-layouts.gresource"
@@ -323,7 +436,7 @@ function getDefaultLayouts() {
 
 // In case the keyboard is currently disabled in accessibility settings, attempting to _destroyKeyboard() yields a TypeError ("TypeError: this.actor is null")
 // This function proofs this condition, which would be used in the parent function to determine whether to run _setupKeyboard
-function tryDestroyKeyboard() {
+tryDestroyKeyboard() {
   try {
     Main.keyboard._destroyKeyboard();
   } catch (e) {
@@ -337,101 +450,4 @@ function tryDestroyKeyboard() {
   return true;
 }
 
-// Extension
-function init() {
-  backup_relayout = Keyboard.Keyboard.prototype["_relayout"];
-  backup_toggleModifier = Keyboard.Keyboard.prototype["_toggleModifier"];
-  backup_setActiveLayer = Keyboard.Keyboard.prototype["_setActiveLayer"];
-  backup_addRowKeys = Keyboard.Keyboard.prototype["_addRowKeys"];
-  backup_commitAction = Keyboard.Keyboard.prototype["_commitAction"];
-  backup_toggleDelete = Keyboard.Keyboard.prototype["_toggleDelete"];
-
-  backup_lastDeviceIsTouchScreen =
-    Keyboard.KeyboardManager._lastDeviceIsTouchscreen;
-
-  backup_getCurrentGroup =
-    Keyboard.KeyboardController.prototype["getCurrentGroup"];
-
-  currentSeat = Clutter.get_default_backend().get_default_seat();
-  backup_touchMode = currentSeat.get_touch_mode;
-}
-
-function enable() {
-  settings = ExtensionUtils.getSettings(
-    "org.gnome.shell.extensions.improvedosk"
-  );
-  _oskA11yApplicationsSettings = new Gio.Settings({
-    schema_id: A11Y_APPLICATIONS_SCHEMA,
-  });
-
-  Main.layoutManager.removeChrome(Main.layoutManager.keyboardBox);
-
-  // Set up the indicator in the status area
-  if (settings.get_boolean("show-statusbar-icon")) {
-    _indicator = new OSKIndicator();
-    Main.panel.addToStatusArea("OSKIndicator", _indicator);
-  }
-
-  if (settings.get_boolean("force-touch-input")) {
-    currentSeat.get_touch_mode = () => true;
-  }
-
-  let KeyboardIsSetup = tryDestroyKeyboard();
-
-  enable_overrides();
-
-  settings.connect("changed::show-statusbar-icon", function () {
-    if (settings.get_boolean("show-statusbar-icon")) {
-      _indicator = new OSKIndicator();
-      Main.panel.addToStatusArea("OSKIndicator", _indicator);
-    } else if (_indicator !== null) {
-      _indicator.destroy();
-      _indicator = null;
-    }
-  });
-
-  settings.connect("changed::force-touch-input", function () {
-    if (settings.get_boolean("force-touch-input")) {
-      currentSeat.get_touch_mode = () => true;
-    } else {
-      currentSeat.get_touch_mode = backup_touchMode;
-    }
-  });
-
-  if (KeyboardIsSetup) {
-    Main.keyboard._setupKeyboard();
-  }
-
-  Main.layoutManager.addTopChrome(Main.layoutManager.keyboardBox, {
-    affectsStruts: settings.get_boolean("resize-desktop"),
-    trackFullscreen: false,
-  });
-}
-
-function disable() {
-  Main.layoutManager.removeChrome(Main.layoutManager.keyboardBox);
-
-  currentSeat.get_touch_mode = backup_touchMode;
-
-  let KeyboardIsSetup = tryDestroyKeyboard();
-
-  // Remove indicator if it exists
-  if (_indicator instanceof OSKIndicator) {
-    _indicator.destroy();
-    _indicator = null;
-  }
-
-  settings = null;
-
-  if (keyReleaseTimeoutId) {
-    GLib.Source.remove(keyReleaseTimeoutId);
-    keyReleaseTimeoutId = null;
-  }
-
-  disable_overrides();
-
-  if (KeyboardIsSetup) {
-    Main.keyboard._setupKeyboard();
-  }
-  Main.layoutManager.addTopChrome(Main.layoutManager.keyboardBox);
 }
