@@ -4,7 +4,7 @@ import GLib from 'gi://GLib';
 import St from 'gi://St';
 import Clutter from 'gi://Clutter';
 import GObject from 'gi://GObject';
-import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
+import {Extension, InjectionManager} from 'resource:///org/gnome/shell/extensions/extension.js';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as Keyboard from 'resource:///org/gnome/shell/ui/keyboard.js';
 import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
@@ -74,14 +74,38 @@ let OSKIndicator = GObject.registerClass(
 );
 
 function toggleOSK() {
+  //Main.keyboard._keyboard._keyboardController.destroy();
+  //Main.keyboard._keyboard._setupKeyboard();
   if (Main.keyboard._keyboard._keyboardVisible) return Main.keyboard.close();
 
   Main.keyboard.open(Main.layoutManager.bottomIndex);
 }
 
+function override_getCurrentGroup() {
+  // Special case for Korean, if Hangul mode is disabled, use the 'us' keymap
+  console.log("osk: JS ERROR override_getCurrentGroup !!!!!!!!!!1");  
+  if (this._currentSource.id === 'hangul') {
+      const inputSourceManager = InputSourceManager.getInputSourceManager();
+      const currentSource = inputSourceManager.currentSource;
+      let prop;
+      for (let i = 0; (prop = currentSource.properties.get(i)) !== null; ++i) {
+          if (prop.get_key() === 'InputMode' &&
+              prop.get_prop_type() === IBus.PropType.TOGGLE &&
+              prop.get_state() !== IBus.PropState.CHECKED)
+              return 'us';
+      }
+  }
+  return this._currentSource.xkbId;
+}
+
+
 
 // Extension
 export default class thisdoesmatternot extends Extension {
+    constructor(metadata) {
+        super(metadata);
+        this._injectionManager = new InjectionManager();
+    }
 init() {
   settings = this.getSettings(
     "org.gnome.shell.extensions.improvedosk"
@@ -144,7 +168,7 @@ enable() {
   });
 
   if (KeyboardIsSetup) {
-    Main.keyboard._setupKeyboard();
+    Main.keyboard._syncEnabled();
   }
 
   Main.layoutManager.addTopChrome(Main.layoutManager.keyboardBox, {
@@ -370,6 +394,7 @@ override_setActiveLayer(activeLevel) {
 
 override_getCurrentGroup() {
   // Special case for Korean, if Hangul mode is disabled, use the 'us' keymap
+  console.log("osk: JS ERROR Im actually here!!!!!!!!!!1");  
   if (this._currentSource.id === 'hangul') {
       const inputSourceManager = InputSourceManager.getInputSourceManager();
       const currentSource = inputSourceManager.currentSource;
@@ -387,6 +412,11 @@ override_getCurrentGroup() {
 enable_overrides() {
     //safe to override: change size of keyboard
     Keyboard.Keyboard.prototype["_relayout"] = this.override_relayout;
+    // Overriding a method with a *function expression*
+    //this._injectionManager.overrideMethod(Keyboard.Keyboard.prototype, '_relayout',
+    //originalMethod => {
+    //    return this.override_relayout()
+    //});
     //not safe over; shift key
     //this._modifierKeys[keyval] is undefined
     //Keyboard.Keyboard.prototype["_toggleModifier"] = this.override_toggleModifier;
@@ -403,7 +433,32 @@ enable_overrides() {
   Keyboard.KeyboardManager.prototype["_lastDeviceIsTouchscreen"] =
     this.override_lastDeviceIsTouchScreen;
   // this doesn't work as keyboardcontroller not exported
-    //not sure how to solve this
+  //not sure how to solve this
+  this._injectionManager.overrideMethod(
+    Keyboard.Keyboard.prototype, '_init',
+    originalMethod => {
+      return function (...args) {
+        originalMethod.call(this, ...args);
+        this._keyboardController.getCurrentGroup = override_getCurrentGroup;
+      }
+    });
+  this._injectionManager.overrideMethod(
+    Keyboard.KeyboardManager.prototype, '_syncEnabled',
+    originalMethod => {
+      return function (...args) {
+        //console.log("osk: JS ERROR asdf");  
+        originalMethod.call(this, ...args);
+        const SHOW_KEYBOARD = 'screen-keyboard-enabled';
+        let enableKeyboard = this._a11yApplicationsSettings.get_boolean(SHOW_KEYBOARD);
+        let autoEnabled = this._seat.get_touch_mode() && this._lastDeviceIsTouchscreen();
+        let enabled = enableKeyboard || autoEnabled;
+        console.log("osk: JS ERROR run syncEnabled" +
+                    enabled + !this._keyboard);
+      }
+    });
+
+  //let keyboard_test = new Keyboard.Keyboard()
+
   //Keyboard.KeyboardController.prototype["getCurrentGroup"] =
   //  override_getCurrentGroup;
 
@@ -414,25 +469,26 @@ enable_overrides() {
   this.getModifiedLayouts()._register();
 }
 
-disable_overrides() {
-  Keyboard.Keyboard.prototype["_relayout"] = backup_relayout;
-  Keyboard.Keyboard.prototype["_toggleModifier"] = backup_toggleModifier;
-  Keyboard.Keyboard.prototype["_setActiveLayer"] = backup_setActiveLayer;
-  Keyboard.Keyboard.prototype["_addRowKeys"] = backup_addRowKeys;
-  Keyboard.Keyboard.prototype["_commitAction"] = backup_commitAction;
-  Keyboard.Keyboard.prototype["_toggleDelete"] = backup_toggleDelete;
+  disable_overrides() {
+    this._injectionManager.clear();
+    Keyboard.Keyboard.prototype["_relayout"] = backup_relayout;
+    Keyboard.Keyboard.prototype["_toggleModifier"] = backup_toggleModifier;
+    Keyboard.Keyboard.prototype["_setActiveLayer"] = backup_setActiveLayer;
+    Keyboard.Keyboard.prototype["_addRowKeys"] = backup_addRowKeys;
+    Keyboard.Keyboard.prototype["_commitAction"] = backup_commitAction;
+    Keyboard.Keyboard.prototype["_toggleDelete"] = backup_toggleDelete;
 
-  Keyboard.KeyboardManager.prototype["_lastDeviceIsTouchscreen"] =
-    backup_lastDeviceIsTouchScreen;
+    Keyboard.KeyboardManager.prototype["_lastDeviceIsTouchscreen"] =
+      backup_lastDeviceIsTouchScreen;
 
-  //Keyboard.KeyboardController.prototype["getCurrentGroup"] =
-  //  backup_getCurrentGroup;
+    //Keyboard.KeyboardController.prototype["getCurrentGroup"] =
+    //  backup_getCurrentGroup;
 
-  // Unregister modified osk layouts resource file
-  this.getModifiedLayouts()._unregister();
-
-  // Register original osk layouts resource file
-  this.getDefaultLayouts()._register();
+    // Unregister modified osk layouts resource file
+    this.getModifiedLayouts()._unregister();
+    
+    // Register original osk layouts resource file
+    this.getDefaultLayouts()._register();
 }
 
 
@@ -445,12 +501,16 @@ getDefaultLayouts() {
 
 // In case the keyboard is currently disabled in accessibility settings, attempting to _destroyKeyboard() yields a TypeError ("TypeError: this.actor is null")
 // This function proofs this condition, which would be used in the parent function to determine whether to run _setupKeyboard
-tryDestroyKeyboard() {
-  try {
-    Main.keyboard._destroyKeyboard();
+  tryDestroyKeyboard() {
+    try {
+     // Main.keyboard._destroyKeyboard();
+    //Main.keyboard._keyboard._keyboardController.destroy();
+      Main.keyboard._keyboard.destroy();
+      Main.keyboard._keyboard = null;
   } catch (e) {
     if (e instanceof TypeError) {
       return false;
+      //throw e;
     } else {
       // Something different happened
       throw e;
