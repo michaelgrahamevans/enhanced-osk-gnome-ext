@@ -385,16 +385,25 @@ override_getCurrentGroup() {
 }
 
 enable_overrides() {
-  Keyboard.Keyboard.prototype["_relayout"] = this.override_relayout;
-  Keyboard.Keyboard.prototype["_toggleModifier"] = this.override_toggleModifier;
-  Keyboard.Keyboard.prototype["_setActiveLayer"] = this.override_setActiveLayer;
-  Keyboard.Keyboard.prototype["_addRowKeys"] = this.override_addRowKeys;
-  Keyboard.Keyboard.prototype["_commitAction"] = this.override_commitAction;
-  Keyboard.Keyboard.prototype["_toggleDelete"] = this.override_toggleDelete;
-
+    //safe to override: change size of keyboard
+    Keyboard.Keyboard.prototype["_relayout"] = this.override_relayout;
+    //not safe over; shift key
+    //this._modifierKeys[keyval] is undefined
+    //Keyboard.Keyboard.prototype["_toggleModifier"] = this.override_toggleModifier;
+    //safe? ; keep modifier on other levels
+    Keyboard.Keyboard.prototype["_setActiveLayer"] = this.override_setActiveLayer;
+    //not safe: keyboard.key not exported
+    //Keyboard.Keyboard.prototype["_addRowKeys"] = this.override_addRowKeys;
+    //safe?  : probably not shift does not seem to work then
+    //keyvalToPress var causes shift to not work
+   //Keyboard.Keyboard.prototype["_commitAction"] = this.override_commitAction;
+    //safe? the original is a lot longer
+  //Keyboard.Keyboard.prototype["_toggleDelete"] = this.override_toggleDelete;
+    //some setting to ignore touchscreen
   Keyboard.KeyboardManager.prototype["_lastDeviceIsTouchscreen"] =
     this.override_lastDeviceIsTouchScreen;
-
+  // this doesn't work as keyboardcontroller not exported
+    //not sure how to solve this
   //Keyboard.KeyboardController.prototype["getCurrentGroup"] =
   //  override_getCurrentGroup;
 
