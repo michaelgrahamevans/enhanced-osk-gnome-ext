@@ -16,18 +16,11 @@ const KEY_RELEASE_TIMEOUT = 100;
 
 //check how to get metadata
 
-
 let extensionObject, extensionSettings;
 let _oskA11yApplicationsSettings;
 let backup_lastDeviceIsTouchScreen;
 let backup_relayout;
-let backup_addRowKeys;
-let backup_commitAction;
-let backup_toggleDelete;
-let backup_toggleModifier;
-let backup_setActiveLayer;
 let backup_touchMode;
-let backup_getCurrentGroup;
 let currentSeat;
 let _indicator;
 let settings;
@@ -83,7 +76,6 @@ function toggleOSK() {
 
 function override_getCurrentGroup() {
   // Special case for Korean, if Hangul mode is disabled, use the 'us' keymap
-  console.log("osk: JS ERROR override_getCurrentGroup !!!!!!!!!!1");  
   if (this._currentSource.id === 'hangul') {
       const inputSourceManager = InputSourceManager.getInputSourceManager();
       const currentSource = inputSourceManager.currentSource;
@@ -99,7 +91,6 @@ function override_getCurrentGroup() {
 }
 
 
-
 // Extension
 export default class thisdoesmatternot extends Extension {
     constructor(metadata) {
@@ -111,24 +102,16 @@ init() {
     "org.gnome.shell.extensions.improvedosk"
   );
   backup_relayout = Keyboard.Keyboard.prototype["_relayout"];
-  backup_toggleModifier = Keyboard.Keyboard.prototype["_toggleModifier"];
-  backup_setActiveLayer = Keyboard.Keyboard.prototype["_setActiveLayer"];
-  backup_addRowKeys = Keyboard.Keyboard.prototype["_addRowKeys"];
-  backup_commitAction = Keyboard.Keyboard.prototype["_commitAction"];
-  backup_toggleDelete = Keyboard.Keyboard.prototype["_toggleDelete"];
 
   backup_lastDeviceIsTouchScreen =
     Keyboard.KeyboardManager._lastDeviceIsTouchscreen;
-
-  //backup_getCurrentGroup =
-  //  Keyboard.KeyboardController.prototype["getCurrentGroup"];
 
   currentSeat = Clutter.get_default_backend().get_default_seat();
   backup_touchMode = currentSeat.get_touch_mode;
 }
 
 enable() {
-    this.init()
+  this.init()
   _oskA11yApplicationsSettings = new Gio.Settings({
     schema_id: A11Y_APPLICATIONS_SCHEMA,
   });
@@ -169,6 +152,7 @@ enable() {
 
   if (KeyboardIsSetup) {
     Main.keyboard._syncEnabled();
+    Main.keyboard._keyboard._updateKeys(); //for testing
   }
 
   Main.layoutManager.addTopChrome(Main.layoutManager.keyboardBox, {
@@ -218,7 +202,6 @@ override_lastDeviceIsTouchScreen() {
   if (!this._lastDevice) return false;
 
     let deviceType = this._lastDevice.get_device_type();
-    //console.log("osk: thisME = " + this);
   return settings.get_boolean("ignore-touch-input")
     ? false
     : deviceType == Clutter.InputDeviceType.TOUCHSCREEN_DEVICE;
@@ -238,229 +221,18 @@ override_relayout() {
   }
 }
 
-override_addRowKeys(keys, layout) {
-  for (let i = 0; i < keys.length; ++i) {
-    const key = keys[i];
-    const {strings} = key;
-    const commitString = strings?.shift();
-
-    let button = new Key({
-      commitString,
-      label: key.label,
-      iconName: key.iconName,
-      keyval: key.keyval,
-    }, strings);
-
-    if (key.width !== null)
-      button.setWidth(key.width);
-
-    if (key.action !== 'modifier') {
-      button.connect('commit', (_actor, keyval, str) => {
-        this._commitAction(keyval, str);
-      });
-    }
-
-    if (key.action !== null) {
-      button.connect('released', () => {
-        if (key.action === 'hide') {
-          this.close();
-        } else if (key.action === 'languageMenu') {
-          this._popupLanguageMenu(button);
-        } else if (key.action === 'emoji') {
-          this._toggleEmoji();
-        } else if (key.action === 'modifier') {
-          // Pass the whole key object to allow switching layers on "Shift" press
-          this._toggleModifier(key);
-
-        } else if (key.action === 'delete') {
-          this._toggleDelete(true);
-          this._toggleDelete(false);
-        } else if (!this._longPressed && key.action === 'levelSwitch') {
-          this._setActiveLayer(key.level);
-
-          // Ensure numbers layer latches
-          const isNumbersLayer = key.level === 2;
-          this._setLatched(isNumbersLayer);
-        }
-
-        this._longPressed = false;
-      });
-    }
-
-    if (key.iconName === 'keyboard-shift-symbolic') layout.shiftKeys.push(button);
-
-    if (key.action === 'delete') {
-      button.connect('long-press',
-          () => this._toggleDelete(true));
-    }
-
-    if (key.action === 'modifier') {
-      let modifierKeys = this._modifierKeys[key.keyval] || [];
-      modifierKeys.push(button);
-      this._modifierKeys[key.keyval] = modifierKeys;
-    }
-
-    if (key.action || key.keyval)
-      button.keyButton.add_style_class_name('default-key');
-
-    layout.appendKey(button, button.keyButton.keyWidth);
-  }
-}
-
-async override_commitAction(keyval, str) {
-  if (this._modifiers.size === 0 && str !== '' &&
-      keyval && this._oskCompletionEnabled) {
-    if (await Main.inputMethod.handleVirtualKey(keyval))
-      return;
-  }
-
-  if (str === '' || !Main.inputMethod.currentFocus ||
-      (keyval && this._oskCompletionEnabled) ||
-      this._modifiers.size > 0 ||
-      !this._keyboardController.commitString(str, true)) {
-    if (keyval !== 0) {
-      // If sending a key combination with a string char, use lowercase key value,
-      // otherwise extension can't reliably input "Shift + [key]" combinations
-        // See https://github.com/nick-shmyrev/improved-osk-gnome-ext/issues/38#issuecomment-1466599579
-      const keyvalToPress = str === '' ? keyval : Key.prototype._getKeyvalFromString(str.toLowerCase());
-
-      this._forwardModifiers(this._modifiers, Clutter.EventType.KEY_PRESS);
-      this._keyboardController.keyvalPress(keyvalToPress);
-      keyReleaseTimeoutId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, KEY_RELEASE_TIMEOUT, () => {
-        this._keyboardController.keyvalRelease(keyvalToPress);
-        this._forwardModifiers(this._modifiers, Clutter.EventType.KEY_RELEASE);
-        this._disableAllModifiers();
-        return GLib.SOURCE_REMOVE;
-      });
-    }
-  }
-
-  if (!this._latched)
-    this._setActiveLayer(0);
-}
-
-override_toggleDelete(enabled) {
-  if (this._deleteEnabled === enabled) return;
-
-  this._deleteEnabled = enabled;
-
-  if (enabled) {
-    this._keyboardController.keyvalPress(Clutter.KEY_BackSpace);
-  } else {
-    this._keyboardController.keyvalRelease(Clutter.KEY_BackSpace);
-  }
-}
-
-override_toggleModifier(key) {
-  const { keyval, level } = key;
-  const SHIFT_KEYVAL = '0xffe1';
-  const isActive = this._modifiers.has(keyval);
-
-  if (keyval === SHIFT_KEYVAL) this._setActiveLayer(level);
-
-  this._setModifierEnabled(keyval, !isActive);
-}
-
-override_setActiveLayer(activeLevel) {
-  let activeGroupName = this._keyboardController.getCurrentGroup();
-  let layers = this._groups[activeGroupName];
-  let currentPage = layers[activeLevel];
-
-  if (this._currentPage == currentPage) {
-    this._updateCurrentPageVisible();
-    return;
-  }
-
-  if (this._currentPage != null) {
-    this._setCurrentLevelLatched(this._currentPage, false);
-    this._currentPage.disconnect(this._currentPage._destroyID);
-    this._currentPage.hide();
-    delete this._currentPage._destroyID;
-  }
-  // === Override starts here ===
-
-  // Don't unlatch modifiers if switching to lower or upper case layer
-  if (activeLevel > 1) this._disableAllModifiers();
-
-  // === Override ends here ===
-  this._currentPage = currentPage;
-  this._currentPage._destroyID = this._currentPage.connect('destroy', () => {
-    this._currentPage = null;
-  });
-  this._updateCurrentPageVisible();
-  this._aspectContainer.setRatio(...this._currentPage.getRatio());
-  this._emojiSelection.setRatio(...this._currentPage.getRatio());
-}
-
-override_getCurrentGroup() {
-  // Special case for Korean, if Hangul mode is disabled, use the 'us' keymap
-  console.log("osk: JS ERROR Im actually here!!!!!!!!!!1");  
-  if (this._currentSource.id === 'hangul') {
-      const inputSourceManager = InputSourceManager.getInputSourceManager();
-      const currentSource = inputSourceManager.currentSource;
-      let prop;
-      for (let i = 0; (prop = currentSource.properties.get(i)) !== null; ++i) {
-          if (prop.get_key() === 'InputMode' &&
-              prop.get_prop_type() === IBus.PropType.TOGGLE &&
-              prop.get_state() !== IBus.PropState.CHECKED)
-              return 'us';
-      }
-  }
-  return this._currentSource.xkbId;
-}
-
-enable_overrides() {
-    //safe to override: change size of keyboard
+  enable_overrides() {
     Keyboard.Keyboard.prototype["_relayout"] = this.override_relayout;
-    // Overriding a method with a *function expression*
-    //this._injectionManager.overrideMethod(Keyboard.Keyboard.prototype, '_relayout',
-    //originalMethod => {
-    //    return this.override_relayout()
-    //});
-    //not safe over; shift key
-    //this._modifierKeys[keyval] is undefined
-    //Keyboard.Keyboard.prototype["_toggleModifier"] = this.override_toggleModifier;
-    //safe? ; keep modifier on other levels
-    Keyboard.Keyboard.prototype["_setActiveLayer"] = this.override_setActiveLayer;
-    //not safe: keyboard.key not exported
-    //Keyboard.Keyboard.prototype["_addRowKeys"] = this.override_addRowKeys;
-    //safe?  : probably not shift does not seem to work then
-    //keyvalToPress var causes shift to not work
-   //Keyboard.Keyboard.prototype["_commitAction"] = this.override_commitAction;
-    //safe? the original is a lot longer
-  //Keyboard.Keyboard.prototype["_toggleDelete"] = this.override_toggleDelete;
-    //some setting to ignore touchscreen
-  Keyboard.KeyboardManager.prototype["_lastDeviceIsTouchscreen"] =
-    this.override_lastDeviceIsTouchScreen;
-  // this doesn't work as keyboardcontroller not exported
-  //not sure how to solve this
-  this._injectionManager.overrideMethod(
-    Keyboard.Keyboard.prototype, '_init',
-    originalMethod => {
-      return function (...args) {
-        originalMethod.call(this, ...args);
-        this._keyboardController.getCurrentGroup = override_getCurrentGroup;
-      }
-    });
-  this._injectionManager.overrideMethod(
-    Keyboard.KeyboardManager.prototype, '_syncEnabled',
-    originalMethod => {
-      return function (...args) {
-        //console.log("osk: JS ERROR asdf");  
-        originalMethod.call(this, ...args);
-        const SHOW_KEYBOARD = 'screen-keyboard-enabled';
-        let enableKeyboard = this._a11yApplicationsSettings.get_boolean(SHOW_KEYBOARD);
-        let autoEnabled = this._seat.get_touch_mode() && this._lastDeviceIsTouchscreen();
-        let enabled = enableKeyboard || autoEnabled;
-        console.log("osk: JS ERROR run syncEnabled" +
-                    enabled + !this._keyboard);
-      }
-    });
-
-  //let keyboard_test = new Keyboard.Keyboard()
-
-  //Keyboard.KeyboardController.prototype["getCurrentGroup"] =
-  //  override_getCurrentGroup;
+    Keyboard.KeyboardManager.prototype["_lastDeviceIsTouchscreen"] =
+      this.override_lastDeviceIsTouchScreen;
+    this._injectionManager.overrideMethod(
+      Keyboard.Keyboard.prototype, '_init',
+      originalMethod => {
+        return function (...args) {
+          originalMethod.call(this, ...args);
+          this._keyboardController.getCurrentGroup = override_getCurrentGroup;
+        }
+      });
 
   // Unregister original osk layouts resource file
   this.getDefaultLayouts()._unregister();
@@ -472,17 +244,8 @@ enable_overrides() {
   disable_overrides() {
     this._injectionManager.clear();
     Keyboard.Keyboard.prototype["_relayout"] = backup_relayout;
-    Keyboard.Keyboard.prototype["_toggleModifier"] = backup_toggleModifier;
-    Keyboard.Keyboard.prototype["_setActiveLayer"] = backup_setActiveLayer;
-    Keyboard.Keyboard.prototype["_addRowKeys"] = backup_addRowKeys;
-    Keyboard.Keyboard.prototype["_commitAction"] = backup_commitAction;
-    Keyboard.Keyboard.prototype["_toggleDelete"] = backup_toggleDelete;
-
     Keyboard.KeyboardManager.prototype["_lastDeviceIsTouchscreen"] =
       backup_lastDeviceIsTouchScreen;
-
-    //Keyboard.KeyboardController.prototype["getCurrentGroup"] =
-    //  backup_getCurrentGroup;
 
     // Unregister modified osk layouts resource file
     this.getModifiedLayouts()._unregister();
@@ -503,8 +266,6 @@ getDefaultLayouts() {
 // This function proofs this condition, which would be used in the parent function to determine whether to run _setupKeyboard
   tryDestroyKeyboard() {
     try {
-     // Main.keyboard._destroyKeyboard();
-    //Main.keyboard._keyboard._keyboardController.destroy();
       Main.keyboard._keyboard.destroy();
       Main.keyboard._keyboard = null;
   } catch (e) {
