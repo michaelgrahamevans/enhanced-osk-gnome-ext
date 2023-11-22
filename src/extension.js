@@ -69,9 +69,10 @@ let OSKIndicator = GObject.registerClass(
 function toggleOSK() {
   //Main.keyboard._keyboard._keyboardController.destroy();
   //Main.keyboard._keyboard._setupKeyboard();
-  if (Main.keyboard._keyboard._keyboardVisible) return Main.keyboard.close();
-
-  Main.keyboard.open(Main.layoutManager.bottomIndex);
+  if (Main.keyboard._keyboard !== null ){
+    if (Main.keyboard._keyboard._keyboardVisible) return Main.keyboard.close();
+    Main.keyboard.open(Main.layoutManager.bottomIndex);
+  }
 }
 
 function override_getCurrentGroup() {
@@ -184,7 +185,8 @@ disable() {
   this.disable_overrides();
 
   if (KeyboardIsSetup) {
-    Main.keyboard._setupKeyboard();
+    Main.keyboard._syncEnabled();
+    Main.keyboard._keyboard._updateKeys(); //for testing
   }
   Main.layoutManager.addTopChrome(Main.layoutManager.keyboardBox);
 }
@@ -221,10 +223,10 @@ override_relayout() {
   }
 }
 
-  enable_overrides() {
+enable_overrides() {
     Keyboard.Keyboard.prototype["_relayout"] = this.override_relayout;
-    Keyboard.KeyboardManager.prototype["_lastDeviceIsTouchscreen"] =
-      this.override_lastDeviceIsTouchScreen;
+    //Keyboard.KeyboardManager.prototype["_lastDeviceIsTouchscreen"] =
+    //  this.override_lastDeviceIsTouchScreen;
     this._injectionManager.overrideMethod(
       Keyboard.Keyboard.prototype, '_init',
       originalMethod => {
@@ -244,8 +246,8 @@ override_relayout() {
   disable_overrides() {
     this._injectionManager.clear();
     Keyboard.Keyboard.prototype["_relayout"] = backup_relayout;
-    Keyboard.KeyboardManager.prototype["_lastDeviceIsTouchscreen"] =
-      backup_lastDeviceIsTouchScreen;
+    //Keyboard.KeyboardManager.prototype["_lastDeviceIsTouchscreen"] =
+    //  backup_lastDeviceIsTouchScreen;
 
     // Unregister modified osk layouts resource file
     this.getModifiedLayouts()._unregister();
