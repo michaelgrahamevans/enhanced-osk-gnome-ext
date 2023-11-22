@@ -3,7 +3,7 @@
 # Run this script to package all necessary extension files into a .zip
 
 root_dir=$PWD
-zip_filename="improvedosk@nick-shmyrev.dev.shell-extension.zip"
+zip_filename="improvedosk@stefan-k.shell-extension.zip"
 
 # Remove existing .zip
 rm -f "$zip_filename"

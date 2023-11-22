@@ -2,6 +2,8 @@
 
 Makes Gnome's OnScreen Keyboard more usable.
 
+THIS HAS TO BE UPDATED
+
 Features:
 * Includes additional buttons: Arrow keys, Esc, Tab, Ctrl, Alt, Super, F1-12
 * Supports key combinations like `Ctrl + C`, `Alt + Tab`, `Ctrl + Shift + C`, etc.

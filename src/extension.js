@@ -54,7 +54,7 @@ let OSKIndicator = GObject.registerClass(
 
         // Don't open extension prefs if in unlock-dialog session mode
           if (button == 3 && !isInUnlockDialogMode()) {
-              extensionObject = Extension.lookupByUUID('improvedosk@nick-shmyrev.dev');
+              extensionObject = Extension.lookupByUUID('improvedosk@stefan-k');
               extensionSettings = extensionObject.openPreferences();
         }
       });
