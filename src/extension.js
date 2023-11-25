@@ -235,6 +235,67 @@ enable_overrides() {
           this._keyboardController.getCurrentGroup = override_getCurrentGroup;
         }
       });
+  this._injectionManager.overrideMethod(
+      Keyboard.Keyboard.prototype, '_setupKeyboard',
+      originalMethod => {
+        return function (...args) {
+          originalMethod.call(this, ...args);
+          //track active level
+          this._activelayer = 0;
+        }
+      });
+
+  this._injectionManager.overrideMethod(
+    Keyboard.Keyboard.prototype, '_setActiveLayer',
+    originalMethod => {
+      return function (activeLevel) {
+        let activeGroupName = this._keyboardController.getCurrentGroup();
+        let layers = this._groups[activeGroupName];
+        let currentPage = layers[activeLevel];
+
+        if (this._currentPage === currentPage) {
+          this._updateCurrentPageVisible();
+          return;
+        }
+
+        if (this._currentPage != null) {
+          this._setCurrentLevelLatched(this._currentPage, false);
+          this._currentPage.disconnect(this._currentPage._destroyID);
+          this._currentPage.hide();
+          delete this._currentPage._destroyID;
+        }
+
+        if (activeLevel > 1) this._disableAllModifiers();
+        this._currentPage = currentPage;
+        this._currentPage._destroyID = this._currentPage.connect('destroy', () => {
+          this._currentPage = null;
+        });
+        this._updateCurrentPageVisible();
+        this._aspectContainer.setRatio(...this._currentPage.getRatio());
+        this._emojiSelection.setRatio(...this._currentPage.getRatio());
+        //track the active level
+        this._activelayer = activeLevel;
+      }
+    });
+
+  //Allow level switching even though shift has
+  //action: modifier
+  this._injectionManager.overrideMethod(
+    Keyboard.Keyboard.prototype, '_toggleModifier',
+    originalMethod => {
+      return function (keyval) {
+        const isActive = this._modifiers.has(keyval);
+        const SHIFT_KEYVAL = '0xffe1';
+        console.log("osk: JS ERROR keyval " + keyval);
+        if (keyval === SHIFT_KEYVAL){
+          if (this._activelayer == 1)
+            this._setActiveLayer(0);
+          else
+            this._setActiveLayer(1);
+        };
+        this._setModifierEnabled(keyval, !isActive);
+      }
+    });
 
   // Unregister original osk layouts resource file
   this.getDefaultLayouts()._unregister();
