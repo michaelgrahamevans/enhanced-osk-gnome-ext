@@ -26,6 +26,42 @@ let _indicator;
 let settings;
 let keyReleaseTimeoutId;
 
+//Model class for _addrowKeys emulation
+class KeyboardModel {
+    constructor(groupName) {
+        let names = [groupName];
+        if (groupName.includes('+'))
+            names.push(groupName.replace(/\+.*/, ''));
+        names.push('us');
+
+        for (let i = 0; i < names.length; i++) {
+            try {
+                this._model = this._loadModel(names[i]);
+                break;
+            } catch (e) {
+            }
+        }
+    }
+
+    _loadModel(groupName) {
+        const file = Gio.File.new_for_uri(
+            `resource:///org/gnome/shell/osk-layouts/${groupName}.json`);
+        let [success_, contents] = file.load_contents(null);
+
+        const decoder = new TextDecoder();
+        return JSON.parse(decoder.decode(contents));
+    }
+
+    getLevels() {
+        return this._model.levels;
+    }
+
+    getKeysForLevel(levelName) {
+        return this._model.levels.find(level => level === levelName);
+    }
+}
+
+
 function isInUnlockDialogMode() {
   return Main.sessionMode.currentMode === 'unlock-dialog';
 }
@@ -91,6 +127,65 @@ function override_getCurrentGroup() {
   return this._currentSource.xkbId;
 }
 
+function addition_createLayersforGroup(ref_this,groupName) {
+  console.log("osk: JS ERROR Running addition_create");
+  //Idea: emulate _createLayersForGroup
+  //copy over KeyboardModel class to here as extra class (not complex)
+  //shiftKeys needs to be repopulated
+  //loadRows directly in
+  //check appendRow
+  //then comes _addRowKeys
+  //there instead of creating new button we load button from layout
+  // then we disconnect button
+  // then run all the rest of  wthe overwrite function
+  // without appendKey function
+
+  //Note: This is all necessary because Key class in keyboard.js is not exported
+  //if exported then the original override_addRowKeys can be used
+
+  //a is layers array that contains all layouts
+  //let a =  ref_this._groups[ref_this._keyboardController.getCurrentGroup()];
+  //a[n] is nth layout; then _rows[n] nth row;
+  //keys[n] nth keyInfo (check appendKey function;
+  //.key gives you then the key class
+  //let b = a[0]._rows[0].keys[0].key
+  //b.disconnect()
+  //b.connect('released', () => {ref_this.close();});
+  let keyboardModel = new KeyboardModel(groupName);
+  let layers = ref_this._groups[ref_this._keyboardController.getCurrentGroup()];
+  let levels = keyboardModel.getLevels();
+  for (let i = 0; i < levels.length; i++) {
+  //for (let i = 0; i < 0; i++) {
+    let currentLevel = levels[i];
+    let level = i >= 1 && levels.length === 3 ? i + 1 : i;
+    let layout = layers[level]
+    layout.shiftKeys = [];
+    layout.mode = currentLevel.mode;
+    //this._loadRows(currentLevel, level, levels.length, layout);
+    //_loadRows(model, level, numLevels, layout) {
+    let rows = currentLevel.rows;
+    for (let j = 0; j < rows.length; ++j) {
+      override_addRowKeys(ref_this,rows[j], layout,j);
+    }
+    layout.hide();
+  }
+}
+
+function override_addRowKeys(ref_this, keys, layout,index_row) {
+  for (let i = 0; i < keys.length; ++i) {
+    const key = keys[i];
+    let button = layout._rows[index_row].keys[i].key
+
+    if (key.iconName === 'keyboard-shift-symbolic'){
+      layout.shiftKeys.push(button);
+      button.connect('long-press', () => {
+        ref_this._setActiveLayer(1);
+        ref_this._setLatched(true);
+        ref_this._iscapslock = true;
+      });
+    }
+  }
+}
 
 // Extension
 export default class thisdoesmatternot extends Extension {
@@ -224,17 +319,18 @@ override_relayout() {
 }
 
 enable_overrides() {
-    Keyboard.Keyboard.prototype["_relayout"] = this.override_relayout;
-    //Keyboard.KeyboardManager.prototype["_lastDeviceIsTouchscreen"] =
-    //  this.override_lastDeviceIsTouchScreen;
-    this._injectionManager.overrideMethod(
-      Keyboard.Keyboard.prototype, '_init',
-      originalMethod => {
-        return function (...args) {
-          originalMethod.call(this, ...args);
-          this._keyboardController.getCurrentGroup = override_getCurrentGroup;
-        }
-      });
+  Keyboard.Keyboard.prototype["_relayout"] = this.override_relayout;
+  //Keyboard.KeyboardManager.prototype["_lastDeviceIsTouchscreen"] =
+  //  this.override_lastDeviceIsTouchScreen;
+  this._injectionManager.overrideMethod(
+    Keyboard.Keyboard.prototype, '_init',
+    originalMethod => {
+      return function (...args) {
+        originalMethod.call(this, ...args);
+        this._keyboardController.getCurrentGroup = override_getCurrentGroup;
+      }
+    });
+
   this._injectionManager.overrideMethod(
       Keyboard.Keyboard.prototype, '_setupKeyboard',
       originalMethod => {
@@ -242,6 +338,8 @@ enable_overrides() {
           originalMethod.call(this, ...args);
           //track active level
           this._activelayer = 0;
+          //track capslock
+          this._iscapslock = false;
         }
       });
 
@@ -277,6 +375,16 @@ enable_overrides() {
         this._activelayer = activeLevel;
       }
     });
+  this._injectionManager.overrideMethod(
+    Keyboard.Keyboard.prototype, '_ensureKeysForGroup',
+    originalMethod => {
+      return function (group) {
+        if (!this._groups[group]){
+          this._groups[group] = this._createLayersForGroup(group);
+          addition_createLayersforGroup(this,group);
+        }
+      }
+    });
 
   //Allow level switching even though shift has
   //action: modifier
@@ -286,16 +394,61 @@ enable_overrides() {
       return function (keyval) {
         const isActive = this._modifiers.has(keyval);
         const SHIFT_KEYVAL = '0xffe1';
-        console.log("osk: JS ERROR keyval " + keyval);
         if (keyval === SHIFT_KEYVAL){
-          if (this._activelayer == 1)
+          //if capslock on just go back to layer 0
+          //and do not activate modifier
+          if (this._iscapslock){
+            this._setLatched(false);
             this._setActiveLayer(0);
-          else
-            this._setActiveLayer(1);
+            this._iscapslock = false;
+            this._disableAllModifiers();
+          }
+          //otherwise switch between layers
+          else{
+            if (this._activelayer == 1){
+              this._setActiveLayer(0)}
+            else{
+              this._setActiveLayer(1);
+            }
+            this._setModifierEnabled(keyval, !isActive);
+          }
+        }
+        else{
+          this._setModifierEnabled(keyval, !isActive);
         };
-        this._setModifierEnabled(keyval, !isActive);
       }
     });
+
+  this._injectionManager.overrideMethod(
+    Keyboard.Keyboard.prototype, '_commitAction',
+    originalMethod => {
+      return async function (keyval,str) {
+        if (this._modifiers.size === 0 && str !== '' &&
+            keyval && this._oskCompletionEnabled) {
+          if (await Main.inputMethod.handleVirtualKey(keyval))
+            return;
+        }
+
+        if (str === '' || !Main.inputMethod.currentFocus ||
+            (keyval && this._oskCompletionEnabled) ||
+            this._modifiers.size > 0 ||
+            !this._keyboardController.commitString(str, true)) {
+          if (keyval !== 0) {
+            this._forwardModifiers(this._modifiers, Clutter.EventType.KEY_PRESS);
+            this._keyboardController.keyvalPress(keyval);
+            GLib.timeout_add(GLib.PRIORITY_DEFAULT, KEY_RELEASE_TIMEOUT, () => {
+              this._keyboardController.keyvalRelease(keyval);
+              this._forwardModifiers(this._modifiers, Clutter.EventType.KEY_RELEASE);
+              //override start
+              if (!this._iscapslock)
+                this._disableAllModifiers();
+              //override end
+              return GLib.SOURCE_REMOVE;
+            });
+          }
+        }
+      }
+    })
 
   // Unregister original osk layouts resource file
   this.getDefaultLayouts()._unregister();
