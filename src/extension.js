@@ -19,7 +19,6 @@ const KEY_RELEASE_TIMEOUT = 100;
 let extensionObject, extensionSettings;
 let _oskA11yApplicationsSettings;
 let backup_lastDeviceIsTouchScreen;
-let backup_relayout;
 let backup_touchMode;
 let currentSeat;
 let _indicator;
@@ -198,8 +197,6 @@ export default class thisdoesmatternot extends Extension {
     settings = this.getSettings(
       "org.gnome.shell.extensions.improvedosk"
     );
-    backup_relayout = Keyboard.Keyboard.prototype["_relayout"];
-
     backup_lastDeviceIsTouchScreen =
       Keyboard.KeyboardManager._lastDeviceIsTouchscreen;
 
@@ -302,22 +299,24 @@ export default class thisdoesmatternot extends Extension {
       : deviceType == Clutter.InputDeviceType.TOUCHSCREEN_DEVICE;
   }
 
-  override_relayout() {
-    let monitor = Main.layoutManager.keyboardMonitor;
-
-    if (!monitor) return;
-
-    this.width = monitor.width;
-
-    if (monitor.width > monitor.height) {
-      this.height = (monitor.height * settings.get_int("landscape-height")) / 100;
-    } else {
-      this.height = (monitor.height * settings.get_int("portrait-height")) / 100;
-    }
-  }
-
   enable_overrides() {
-    Keyboard.Keyboard.prototype["_relayout"] = this.override_relayout;
+    this._injectionManager.overrideMethod(
+      Keyboard.Keyboard.prototype, '_relayout',
+      originalMethod => {
+        return function (...args) {
+          let monitor = Main.layoutManager.keyboardMonitor;
+          if (!monitor) return;
+          this.width = monitor.width;
+          if (monitor.width > monitor.height) {
+            this.height = (monitor.height *
+                           settings.get_int("landscape-height")) / 100;
+          } else {
+            this.height = (monitor.height *
+                           settings.get_int("portrait-height")) / 100;
+          }
+        }
+      });
+
     //Keyboard.KeyboardManager.prototype["_lastDeviceIsTouchscreen"] =
     //  this.override_lastDeviceIsTouchScreen;
     this._injectionManager.overrideMethod(
@@ -457,7 +456,6 @@ export default class thisdoesmatternot extends Extension {
 
   disable_overrides() {
     this._injectionManager.clear();
-    Keyboard.Keyboard.prototype["_relayout"] = backup_relayout;
     //Keyboard.KeyboardManager.prototype["_lastDeviceIsTouchscreen"] =
     //  backup_lastDeviceIsTouchScreen;
 
