@@ -28,37 +28,37 @@ let keyReleaseTimeoutId;
 
 //Model class for _addrowKeys emulation
 class KeyboardModel {
-    constructor(groupName) {
-        let names = [groupName];
-        if (groupName.includes('+'))
-            names.push(groupName.replace(/\+.*/, ''));
-        names.push('us');
+  constructor(groupName) {
+    let names = [groupName];
+    if (groupName.includes('+'))
+      names.push(groupName.replace(/\+.*/, ''));
+    names.push('us');
 
-        for (let i = 0; i < names.length; i++) {
-            try {
-                this._model = this._loadModel(names[i]);
-                break;
-            } catch (e) {
-            }
-        }
+    for (let i = 0; i < names.length; i++) {
+      try {
+        this._model = this._loadModel(names[i]);
+        break;
+      } catch (e) {
+      }
     }
+  }
 
-    _loadModel(groupName) {
-        const file = Gio.File.new_for_uri(
-            `resource:///org/gnome/shell/osk-layouts/${groupName}.json`);
-        let [success_, contents] = file.load_contents(null);
+  _loadModel(groupName) {
+    const file = Gio.File.new_for_uri(
+      `resource:///org/gnome/shell/osk-layouts/${groupName}.json`);
+    let [success_, contents] = file.load_contents(null);
 
-        const decoder = new TextDecoder();
-        return JSON.parse(decoder.decode(contents));
-    }
+    const decoder = new TextDecoder();
+    return JSON.parse(decoder.decode(contents));
+  }
 
-    getLevels() {
-        return this._model.levels;
-    }
+  getLevels() {
+    return this._model.levels;
+  }
 
-    getKeysForLevel(levelName) {
-        return this._model.levels.find(level => level === levelName);
-    }
+  getKeysForLevel(levelName) {
+    return this._model.levels.find(level => level === levelName);
+  }
 }
 
 
@@ -71,8 +71,8 @@ let OSKIndicator = GObject.registerClass(
   { GTypeName: "OSKIndicator" },
   class OSKIndicator extends PanelMenu.Button {
     _init() {
-        //super._init(0.0, `${Me.metadata.name} Indicator`, false);
-        super._init(0.0, `Nometadata Indicator`, false);
+      //super._init(0.0, `${Me.metadata.name} Indicator`, false);
+      super._init(0.0, `Nometadata Indicator`, false);
 
       let icon = new St.Icon({
         icon_name: "input-keyboard-symbolic",
@@ -89,9 +89,9 @@ let OSKIndicator = GObject.registerClass(
         }
 
         // Don't open extension prefs if in unlock-dialog session mode
-          if (button == 3 && !isInUnlockDialogMode()) {
-              extensionObject = Extension.lookupByUUID('improvedosk@stefan-k');
-              extensionSettings = extensionObject.openPreferences();
+        if (button == 3 && !isInUnlockDialogMode()) {
+          extensionObject = Extension.lookupByUUID('improvedosk@stefan-k');
+          extensionSettings = extensionObject.openPreferences();
         }
       });
 
@@ -114,15 +114,15 @@ function toggleOSK() {
 function override_getCurrentGroup() {
   // Special case for Korean, if Hangul mode is disabled, use the 'us' keymap
   if (this._currentSource.id === 'hangul') {
-      const inputSourceManager = InputSourceManager.getInputSourceManager();
-      const currentSource = inputSourceManager.currentSource;
-      let prop;
-      for (let i = 0; (prop = currentSource.properties.get(i)) !== null; ++i) {
-          if (prop.get_key() === 'InputMode' &&
-              prop.get_prop_type() === IBus.PropType.TOGGLE &&
-              prop.get_state() !== IBus.PropState.CHECKED)
-              return 'us';
-      }
+    const inputSourceManager = InputSourceManager.getInputSourceManager();
+    const currentSource = inputSourceManager.currentSource;
+    let prop;
+    for (let i = 0; (prop = currentSource.properties.get(i)) !== null; ++i) {
+      if (prop.get_key() === 'InputMode' &&
+          prop.get_prop_type() === IBus.PropType.TOGGLE &&
+          prop.get_state() !== IBus.PropState.CHECKED)
+        return 'us';
+    }
   }
   return this._currentSource.xkbId;
 }
@@ -189,149 +189,147 @@ function override_addRowKeys(ref_this, keys, layout,index_row) {
 
 // Extension
 export default class thisdoesmatternot extends Extension {
-    constructor(metadata) {
-        super(metadata);
-        this._injectionManager = new InjectionManager();
-    }
-init() {
-  settings = this.getSettings(
-    "org.gnome.shell.extensions.improvedosk"
-  );
-  backup_relayout = Keyboard.Keyboard.prototype["_relayout"];
-
-  backup_lastDeviceIsTouchScreen =
-    Keyboard.KeyboardManager._lastDeviceIsTouchscreen;
-
-  currentSeat = Clutter.get_default_backend().get_default_seat();
-  backup_touchMode = currentSeat.get_touch_mode;
-}
-
-enable() {
-  this.init()
-  _oskA11yApplicationsSettings = new Gio.Settings({
-    schema_id: A11Y_APPLICATIONS_SCHEMA,
-  });
-
-  Main.layoutManager.removeChrome(Main.layoutManager.keyboardBox);
-
-  // Set up the indicator in the status area
-  if (settings.get_boolean("show-statusbar-icon")) {
-    _indicator = new OSKIndicator();
-    Main.panel.addToStatusArea("OSKIndicator", _indicator);
+  constructor(metadata) {
+    super(metadata);
+    this._injectionManager = new InjectionManager();
   }
 
-  if (settings.get_boolean("force-touch-input")) {
-    currentSeat.get_touch_mode = () => true;
-  }
+  enable() {
+    settings = this.getSettings(
+      "org.gnome.shell.extensions.improvedosk"
+    );
+    backup_relayout = Keyboard.Keyboard.prototype["_relayout"];
 
-  let KeyboardIsSetup = this.tryDestroyKeyboard();
+    backup_lastDeviceIsTouchScreen =
+      Keyboard.KeyboardManager._lastDeviceIsTouchscreen;
 
-  this.enable_overrides();
+    currentSeat = Clutter.get_default_backend().get_default_seat();
+    backup_touchMode = currentSeat.get_touch_mode;
 
-  settings.connect("changed::show-statusbar-icon", function () {
+    _oskA11yApplicationsSettings = new Gio.Settings({
+      schema_id: A11Y_APPLICATIONS_SCHEMA,
+    });
+
+    Main.layoutManager.removeChrome(Main.layoutManager.keyboardBox);
+
+    // Set up the indicator in the status area
     if (settings.get_boolean("show-statusbar-icon")) {
       _indicator = new OSKIndicator();
       Main.panel.addToStatusArea("OSKIndicator", _indicator);
-    } else if (_indicator !== null) {
-      _indicator.destroy();
-      _indicator = null;
     }
-  });
 
-  settings.connect("changed::force-touch-input", function () {
     if (settings.get_boolean("force-touch-input")) {
       currentSeat.get_touch_mode = () => true;
-    } else {
-      currentSeat.get_touch_mode = backup_touchMode;
     }
-  });
 
-  if (KeyboardIsSetup) {
-    Main.keyboard._syncEnabled();
-    Main.keyboard._keyboard._updateKeys(); //for testing
-  }
+    let KeyboardIsSetup = this.tryDestroyKeyboard();
 
-  Main.layoutManager.addTopChrome(Main.layoutManager.keyboardBox, {
-    affectsStruts: settings.get_boolean("resize-desktop"),
-    trackFullscreen: false,
-  });
-}
+    this.enable_overrides();
 
-disable() {
-  Main.layoutManager.removeChrome(Main.layoutManager.keyboardBox);
-
-  currentSeat.get_touch_mode = backup_touchMode;
-
-  let KeyboardIsSetup = this.tryDestroyKeyboard();
-
-  // Remove indicator if it exists
-  if (_indicator instanceof OSKIndicator) {
-    _indicator.destroy();
-    _indicator = null;
-  }
-
-  settings = null;
-
-  if (keyReleaseTimeoutId) {
-    GLib.Source.remove(keyReleaseTimeoutId);
-    keyReleaseTimeoutId = null;
-  }
-
-  this.disable_overrides();
-
-  if (KeyboardIsSetup) {
-    Main.keyboard._syncEnabled();
-    Main.keyboard._keyboard._updateKeys(); //for testing
-  }
-  Main.layoutManager.addTopChrome(Main.layoutManager.keyboardBox);
-}
-    
-getModifiedLayouts() {
-  const modifiedLayoutsPath = this.dir
-    .get_child("data")
-    .get_child("gnome-shell-osk-layouts.gresource")
-    .get_path();
-  return Gio.Resource.load(modifiedLayoutsPath);
- }
-
-    // Overrides
-override_lastDeviceIsTouchScreen() {
-  if (!this._lastDevice) return false;
-
-    let deviceType = this._lastDevice.get_device_type();
-  return settings.get_boolean("ignore-touch-input")
-    ? false
-    : deviceType == Clutter.InputDeviceType.TOUCHSCREEN_DEVICE;
-}
-
-override_relayout() {
-  let monitor = Main.layoutManager.keyboardMonitor;
-
-  if (!monitor) return;
-
-    this.width = monitor.width;
-
-  if (monitor.width > monitor.height) {
-    this.height = (monitor.height * settings.get_int("landscape-height")) / 100;
-  } else {
-    this.height = (monitor.height * settings.get_int("portrait-height")) / 100;
-  }
-}
-
-enable_overrides() {
-  Keyboard.Keyboard.prototype["_relayout"] = this.override_relayout;
-  //Keyboard.KeyboardManager.prototype["_lastDeviceIsTouchscreen"] =
-  //  this.override_lastDeviceIsTouchScreen;
-  this._injectionManager.overrideMethod(
-    Keyboard.Keyboard.prototype, '_init',
-    originalMethod => {
-      return function (...args) {
-        originalMethod.call(this, ...args);
-        this._keyboardController.getCurrentGroup = override_getCurrentGroup;
+    settings.connect("changed::show-statusbar-icon", function () {
+      if (settings.get_boolean("show-statusbar-icon")) {
+        _indicator = new OSKIndicator();
+        Main.panel.addToStatusArea("OSKIndicator", _indicator);
+      } else if (_indicator !== null) {
+        _indicator.destroy();
+        _indicator = null;
       }
     });
 
-  this._injectionManager.overrideMethod(
+    settings.connect("changed::force-touch-input", function () {
+      if (settings.get_boolean("force-touch-input")) {
+        currentSeat.get_touch_mode = () => true;
+      } else {
+        currentSeat.get_touch_mode = backup_touchMode;
+      }
+    });
+
+    if (KeyboardIsSetup) {
+      Main.keyboard._syncEnabled();
+      Main.keyboard._keyboard._updateKeys(); //for testing
+    }
+
+    Main.layoutManager.addTopChrome(Main.layoutManager.keyboardBox, {
+      affectsStruts: settings.get_boolean("resize-desktop"),
+      trackFullscreen: false,
+    });
+  }
+
+  disable() {
+    Main.layoutManager.removeChrome(Main.layoutManager.keyboardBox);
+
+    currentSeat.get_touch_mode = backup_touchMode;
+
+    let KeyboardIsSetup = this.tryDestroyKeyboard();
+
+    // Remove indicator if it exists
+    if (_indicator instanceof OSKIndicator) {
+      _indicator.destroy();
+      _indicator = null;
+    }
+
+    settings = null;
+
+    if (keyReleaseTimeoutId) {
+      GLib.Source.remove(keyReleaseTimeoutId);
+      keyReleaseTimeoutId = null;
+    }
+
+    this.disable_overrides();
+
+    if (KeyboardIsSetup) {
+      Main.keyboard._syncEnabled();
+      Main.keyboard._keyboard._updateKeys(); //for testing
+    }
+    Main.layoutManager.addTopChrome(Main.layoutManager.keyboardBox);
+  }
+
+  getModifiedLayouts() {
+    const modifiedLayoutsPath = this.dir
+          .get_child("data")
+          .get_child("gnome-shell-osk-layouts.gresource")
+          .get_path();
+    return Gio.Resource.load(modifiedLayoutsPath);
+  }
+
+  // Overrides
+  override_lastDeviceIsTouchScreen() {
+    if (!this._lastDevice) return false;
+
+    let deviceType = this._lastDevice.get_device_type();
+    return settings.get_boolean("ignore-touch-input")
+      ? false
+      : deviceType == Clutter.InputDeviceType.TOUCHSCREEN_DEVICE;
+  }
+
+  override_relayout() {
+    let monitor = Main.layoutManager.keyboardMonitor;
+
+    if (!monitor) return;
+
+    this.width = monitor.width;
+
+    if (monitor.width > monitor.height) {
+      this.height = (monitor.height * settings.get_int("landscape-height")) / 100;
+    } else {
+      this.height = (monitor.height * settings.get_int("portrait-height")) / 100;
+    }
+  }
+
+  enable_overrides() {
+    Keyboard.Keyboard.prototype["_relayout"] = this.override_relayout;
+    //Keyboard.KeyboardManager.prototype["_lastDeviceIsTouchscreen"] =
+    //  this.override_lastDeviceIsTouchScreen;
+    this._injectionManager.overrideMethod(
+      Keyboard.Keyboard.prototype, '_init',
+      originalMethod => {
+        return function (...args) {
+          originalMethod.call(this, ...args);
+          this._keyboardController.getCurrentGroup = override_getCurrentGroup;
+        }
+      });
+
+    this._injectionManager.overrideMethod(
       Keyboard.Keyboard.prototype, '_setupKeyboard',
       originalMethod => {
         return function (...args) {
@@ -343,118 +341,119 @@ enable_overrides() {
         }
       });
 
-  this._injectionManager.overrideMethod(
-    Keyboard.Keyboard.prototype, '_setActiveLayer',
-    originalMethod => {
-      return function (activeLevel) {
-        let activeGroupName = this._keyboardController.getCurrentGroup();
-        let layers = this._groups[activeGroupName];
-        let currentPage = layers[activeLevel];
-
-        if (this._currentPage === currentPage) {
-          this._updateCurrentPageVisible();
-          return;
-        }
-
-        if (this._currentPage != null) {
-          this._setCurrentLevelLatched(this._currentPage, false);
-          this._currentPage.disconnect(this._currentPage._destroyID);
-          this._currentPage.hide();
-          delete this._currentPage._destroyID;
-        }
-
-        this._currentPage = currentPage;
-        this._currentPage._destroyID = this._currentPage.connect('destroy', () => {
-          this._currentPage = null;
-        });
-        this._updateCurrentPageVisible();
-        this._aspectContainer.setRatio(...this._currentPage.getRatio());
-        this._emojiSelection.setRatio(...this._currentPage.getRatio());
-        //track the active level
-        this._activelayer = activeLevel;
-      }
-    });
-  this._injectionManager.overrideMethod(
-    Keyboard.Keyboard.prototype, '_ensureKeysForGroup',
-    originalMethod => {
-      return function (group) {
-        if (!this._groups[group]){
-          this._groups[group] = this._createLayersForGroup(group);
-          addition_createLayersforGroup(this,group);
-        }
-      }
-    });
-
-  //Allow level switching even though shift has
-  //action: modifier
-  this._injectionManager.overrideMethod(
-    Keyboard.Keyboard.prototype, '_toggleModifier',
-    originalMethod => {
-      return function (keyval) {
-        const isActive = this._modifiers.has(keyval);
-        const SHIFT_KEYVAL = '0xffe1';
-        if (keyval === SHIFT_KEYVAL){
-          //if capslock on just go back to layer 0
-          //and do not activate modifier
-          if (this._iscapslock){
-            this._setLatched(false);
-            this._setActiveLayer(0);
-            this._iscapslock = false;
-            this._disableAllModifiers();
-          }
-          //otherwise switch between layers
-          else{
-            if (this._activelayer == 1){
-              this._setActiveLayer(0)}
-            else{
-              this._setActiveLayer(1);
-            }
-            this._setModifierEnabled(keyval, !isActive);
-          }
-        }
-        else{
-          this._setModifierEnabled(keyval, !isActive);
-        };
-      }
-    });
-
-  this._injectionManager.overrideMethod(
-    Keyboard.Keyboard.prototype, '_commitAction',
-    originalMethod => {
-      return async function (keyval,str) {
-        if (this._modifiers.size === 0 && str !== '' &&
-            keyval && this._oskCompletionEnabled) {
-          if (await Main.inputMethod.handleVirtualKey(keyval))
+    this._injectionManager.overrideMethod(
+      Keyboard.Keyboard.prototype, '_setActiveLayer',
+      originalMethod => {
+        return function (activeLevel) {
+          let activeGroupName = this._keyboardController.getCurrentGroup();
+          let layers = this._groups[activeGroupName];
+          let currentPage = layers[activeLevel];
+          
+          if (this._currentPage === currentPage) {
+            this._updateCurrentPageVisible();
             return;
-        }
+          }
 
-        if (str === '' || !Main.inputMethod.currentFocus ||
-            (keyval && this._oskCompletionEnabled) ||
-            this._modifiers.size > 0 ||
-            !this._keyboardController.commitString(str, true)) {
-          if (keyval !== 0) {
-            this._forwardModifiers(this._modifiers, Clutter.EventType.KEY_PRESS);
-            this._keyboardController.keyvalPress(keyval);
-            GLib.timeout_add(GLib.PRIORITY_DEFAULT, KEY_RELEASE_TIMEOUT, () => {
-              this._keyboardController.keyvalRelease(keyval);
-              this._forwardModifiers(this._modifiers, Clutter.EventType.KEY_RELEASE);
-              //override start
-              if (!this._iscapslock)
-                this._disableAllModifiers();
-              //override end
-              return GLib.SOURCE_REMOVE;
-            });
+          if (this._currentPage != null) {
+            this._setCurrentLevelLatched(this._currentPage, false);
+            this._currentPage.disconnect(this._currentPage._destroyID);
+            this._currentPage.hide();
+            delete this._currentPage._destroyID;
+          }
+
+          this._currentPage = currentPage;
+          this._currentPage._destroyID = this._currentPage.connect('destroy', () => {
+            this._currentPage = null;
+          });
+          this._updateCurrentPageVisible();
+          this._aspectContainer.setRatio(...this._currentPage.getRatio());
+          this._emojiSelection.setRatio(...this._currentPage.getRatio());
+          //track the active level
+          this._activelayer = activeLevel;
+        }
+      });
+
+    this._injectionManager.overrideMethod(
+      Keyboard.Keyboard.prototype, '_ensureKeysForGroup',
+      originalMethod => {
+        return function (group) {
+          if (!this._groups[group]){
+            this._groups[group] = this._createLayersForGroup(group);
+            addition_createLayersforGroup(this,group);
           }
         }
-      }
-    })
+      });
 
-  // Unregister original osk layouts resource file
-  this.getDefaultLayouts()._unregister();
+    //Allow level switching even though shift has
+    //action: modifier
+    this._injectionManager.overrideMethod(
+      Keyboard.Keyboard.prototype, '_toggleModifier',
+      originalMethod => {
+        return function (keyval) {
+          const isActive = this._modifiers.has(keyval);
+          const SHIFT_KEYVAL = '0xffe1';
+          if (keyval === SHIFT_KEYVAL){
+            //if capslock on just go back to layer 0
+            //and do not activate modifier
+            if (this._iscapslock){
+              this._setLatched(false);
+              this._setActiveLayer(0);
+              this._iscapslock = false;
+              this._disableAllModifiers();
+            }
+            //otherwise switch between layers
+            else{
+              if (this._activelayer == 1){
+                this._setActiveLayer(0)}
+              else{
+                this._setActiveLayer(1);
+              }
+              this._setModifierEnabled(keyval, !isActive);
+            }
+          }
+          else{
+            this._setModifierEnabled(keyval, !isActive);
+          };
+        }
+      });
 
-  // Register modified osk layouts resource file
+    this._injectionManager.overrideMethod(
+      Keyboard.Keyboard.prototype, '_commitAction',
+      originalMethod => {
+        return async function (keyval,str) {
+          if (this._modifiers.size === 0 && str !== '' &&
+              keyval && this._oskCompletionEnabled) {
+            if (await Main.inputMethod.handleVirtualKey(keyval))
+              return;
+          }
+
+          if (str === '' || !Main.inputMethod.currentFocus ||
+              (keyval && this._oskCompletionEnabled) ||
+              this._modifiers.size > 0 ||
+              !this._keyboardController.commitString(str, true)) {
+            if (keyval !== 0) {
+              this._forwardModifiers(this._modifiers, Clutter.EventType.KEY_PRESS);
+              this._keyboardController.keyvalPress(keyval);
+              GLib.timeout_add(GLib.PRIORITY_DEFAULT, KEY_RELEASE_TIMEOUT, () => {
+                this._keyboardController.keyvalRelease(keyval);
+                this._forwardModifiers(this._modifiers, Clutter.EventType.KEY_RELEASE);
+                //override start
+                if (!this._iscapslock)
+                  this._disableAllModifiers();
+                //override end
+                return GLib.SOURCE_REMOVE;
+              });
+            }
+          }
+        }
+      })
+
+    // Unregister original osk layouts resource file
+    this.getDefaultLayouts()._unregister();
+
+    // Register modified osk layouts resource file
   this.getModifiedLayouts()._register();
-}
+  }
 
   disable_overrides() {
     this._injectionManager.clear();
@@ -464,35 +463,33 @@ enable_overrides() {
 
     // Unregister modified osk layouts resource file
     this.getModifiedLayouts()._unregister();
-    
+
     // Register original osk layouts resource file
     this.getDefaultLayouts()._register();
-}
+  }
 
+  getDefaultLayouts() {
+    return Gio.Resource.load(
+      (GLib.getenv("JHBUILD_PREFIX") || "/usr") +
+        "/share/gnome-shell/gnome-shell-osk-layouts.gresource"
+    );
+  }
 
-getDefaultLayouts() {
-  return Gio.Resource.load(
-    (GLib.getenv("JHBUILD_PREFIX") || "/usr") +
-      "/share/gnome-shell/gnome-shell-osk-layouts.gresource"
-  );
-}
-
-// In case the keyboard is currently disabled in accessibility settings, attempting to _destroyKeyboard() yields a TypeError ("TypeError: this.actor is null")
-// This function proofs this condition, which would be used in the parent function to determine whether to run _setupKeyboard
+  // In case the keyboard is currently disabled in accessibility settings, attempting to _destroyKeyboard() yields a TypeError ("TypeError: this.actor is null")
+  // This function proofs this condition, which would be used in the parent function to determine whether to run _setupKeyboard
   tryDestroyKeyboard() {
     try {
       Main.keyboard._keyboard.destroy();
       Main.keyboard._keyboard = null;
-  } catch (e) {
-    if (e instanceof TypeError) {
-      return false;
-      //throw e;
-    } else {
-      // Something different happened
-      throw e;
+    } catch (e) {
+      if (e instanceof TypeError) {
+        return false;
+        //throw e;
+      } else {
+        // Something different happened
+        throw e;
+      }
     }
+    return true;
   }
-  return true;
-}
-
 }
