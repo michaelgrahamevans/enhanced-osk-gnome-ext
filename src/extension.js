@@ -128,7 +128,7 @@ function override_getCurrentGroup() {
 }
 
 function addition_createLayersforGroup(ref_this,groupName) {
-  console.log("osk: JS ERROR Running addition_create");
+  //console.log("osk: JS ERROR Running addition_create");
   //Idea: emulate _createLayersForGroup
   //copy over KeyboardModel class to here as extra class (not complex)
   //shiftKeys needs to be repopulated
