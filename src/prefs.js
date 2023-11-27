@@ -23,6 +23,10 @@ export default class MyExtensionPreferences extends ExtensionPreferences {
                                inputLandscapeHeight.value);
       window._settings.set_boolean("show-statusbar-icon",
                                    indicatorEnabled.active);
+      window._settings.set_boolean("ignore-touch-input",
+                                   ignoreTouch.active);
+      window._settings.set_boolean("force-touch-input",
+                                   forceTouch.active);
 
 		});
 		group.add(apply)
@@ -75,5 +79,33 @@ export default class MyExtensionPreferences extends ExtensionPreferences {
 
 		row_ind.add_suffix(indicatorEnabled);
 		row_ind.activatable_widget = indicatorEnabled;
+
+    const row_igtouch = new Adw.ActionRow({
+			title: _('Ignore touch input')
+		});
+		group.add(row_igtouch);
+
+    const ignoreTouch = new Gtk.Switch({
+			active: window._settings.get_boolean("ignore-touch-input"),
+			valign: Gtk.Align.CENTER,
+		});
+
+		row_igtouch.add_suffix(ignoreTouch);
+		row_igtouch.activatable_widget = ignoreTouch;
+
+    const row_forcetouch = new Adw.ActionRow({
+			title: _('Force touch input')
+		});
+		group.add(row_forcetouch);
+
+    const forceTouch = new Gtk.Switch({
+			active: window._settings.get_boolean("force-touch-input"),
+			valign: Gtk.Align.CENTER,
+		});
+
+		row_forcetouch.add_suffix(forceTouch);
+		row_forcetouch.activatable_widget = forceTouch;
+
+
   }
 }

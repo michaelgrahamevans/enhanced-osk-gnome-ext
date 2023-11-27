@@ -18,7 +18,6 @@ const KEY_RELEASE_TIMEOUT = 100;
 
 let extensionObject, extensionSettings;
 let _oskA11yApplicationsSettings;
-let backup_lastDeviceIsTouchScreen;
 let backup_touchMode;
 let currentSeat;
 let _indicator;
@@ -197,9 +196,6 @@ export default class thisdoesmatternot extends Extension {
     settings = this.getSettings(
       "org.gnome.shell.extensions.improvedosk"
     );
-    backup_lastDeviceIsTouchScreen =
-      Keyboard.KeyboardManager._lastDeviceIsTouchscreen;
-
     currentSeat = Clutter.get_default_backend().get_default_seat();
     backup_touchMode = currentSeat.get_touch_mode;
 
@@ -289,16 +285,6 @@ export default class thisdoesmatternot extends Extension {
     return Gio.Resource.load(modifiedLayoutsPath);
   }
 
-  // Overrides
-  override_lastDeviceIsTouchScreen() {
-    if (!this._lastDevice) return false;
-
-    let deviceType = this._lastDevice.get_device_type();
-    return settings.get_boolean("ignore-touch-input")
-      ? false
-      : deviceType == Clutter.InputDeviceType.TOUCHSCREEN_DEVICE;
-  }
-
   enable_overrides() {
     this._injectionManager.overrideMethod(
       Keyboard.Keyboard.prototype, '_relayout',
@@ -317,8 +303,20 @@ export default class thisdoesmatternot extends Extension {
         }
       });
 
-    //Keyboard.KeyboardManager.prototype["_lastDeviceIsTouchscreen"] =
-    //  this.override_lastDeviceIsTouchScreen;
+    this._injectionManager.overrideMethod(
+      Keyboard.KeyboardManager.prototype, '_lastDeviceIsTouchscreen',
+      originalMethod => {
+        return function (...args) {
+          if (!this._lastDevice)
+            return false;
+
+          let deviceType = this._lastDevice.get_device_type();
+          return settings.get_boolean("ignore-touch-input")
+            ? false
+            : deviceType === Clutter.InputDeviceType.TOUCHSCREEN_DEVICE;
+        }
+      });
+
     this._injectionManager.overrideMethod(
       Keyboard.Keyboard.prototype, '_init',
       originalMethod => {
@@ -456,8 +454,6 @@ export default class thisdoesmatternot extends Extension {
 
   disable_overrides() {
     this._injectionManager.clear();
-    //Keyboard.KeyboardManager.prototype["_lastDeviceIsTouchscreen"] =
-    //  backup_lastDeviceIsTouchScreen;
 
     // Unregister modified osk layouts resource file
     this.getModifiedLayouts()._unregister();
