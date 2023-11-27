@@ -11,7 +11,7 @@ export default class MyExtensionPreferences extends ExtensionPreferences {
     const page = new Adw.PreferencesPage();
 
     const group = new Adw.PreferencesGroup({
-      title: _('Group Title'),
+      title: _('Preferences'),
     });
     page.add(group);
 
@@ -20,7 +20,10 @@ export default class MyExtensionPreferences extends ExtensionPreferences {
 			window._settings.set_int("portrait-height",
                        inputPortraitHeight.value);
       window._settings.set_int("landscape-height",
-                       inputLandscapeHeight.value);
+                               inputLandscapeHeight.value);
+      window._settings.set_boolean("show-statusbar-icon",
+                                   indicatorEnabled.active);
+
 		});
 		group.add(apply)
     
@@ -60,5 +63,17 @@ export default class MyExtensionPreferences extends ExtensionPreferences {
     row3.add_row(pH);
 		row3.add_row(lH);
 
+    const row_ind = new Adw.ActionRow({
+			title: _('Show Panel Indicator')
+		});
+		group.add(row_ind);
+
+    const indicatorEnabled = new Gtk.Switch({
+			active: window._settings.get_boolean("show-statusbar-icon"),
+			valign: Gtk.Align.CENTER,
+		});
+
+		row_ind.add_suffix(indicatorEnabled);
+		row_ind.activatable_widget = indicatorEnabled;
   }
 }
