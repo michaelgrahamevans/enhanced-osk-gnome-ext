@@ -2,7 +2,7 @@
   "description": "Makes Gnome's OnScreen Keyboard more usable.\n\nFeatures:\n* Includes additional buttons: Arrow keys, Esc, Tab, Ctrl, Alt, Super, F1-12\n* Supports key combinations like `Ctrl + C`, `Alt + Tab`, `Ctrl + Shift + C`, `Super + A, Alt + F2` etc.\n* Configurable keyboard size (landscape/portrait)\n* Statusbar indicator to toggle keyboard\n* Works in Gnome password modals\n\nThis extension is a fork of https://github.com/nick-shmyrev/improved-osk-gnome-ext.",
   "name": "Improved OSK",
   "shell-version": [
-    "45",
+    "45"
   ],
   "url": "https://github.com/cass00/improved-osk-gnome-ext",
   "uuid": "improvedosk@stefan-k",
