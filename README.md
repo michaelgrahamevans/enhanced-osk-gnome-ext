@@ -30,8 +30,8 @@ install and enable the extension:
 git clone https://github.com/cass00/improved-osk-gnome-ext.git
 cd ./improved-osk-gnome-ext
 ./package-extension.sh
-gnome-extensions install improvedosk@stefan_k.shell-extension.zip
-gnome-extensions enable improvedosk@stefan_k
+gnome-extensions install improvedosk@stefan-k.shell-extension.zip
+gnome-extensions enable improvedosk@stefan-k
 ```
 After enabling extension, log out and back in to reload Gnome Shell.
 
