@@ -68,7 +68,7 @@ function isInUnlockDialogMode() {
 let OSKIndicator = GObject.registerClass(
   { GTypeName: "OSKIndicator" },
   class OSKIndicator extends PanelMenu.Button {
-    _init() {
+    _init(ref_this) {
       //super._init(0.0, `${Me.metadata.name} Indicator`, false);
       super._init(0.0, `Nometadata Indicator`, false);
 
@@ -88,8 +88,7 @@ let OSKIndicator = GObject.registerClass(
 
         // Don't open extension prefs if in unlock-dialog session mode
         if (button == 3 && !isInUnlockDialogMode()) {
-          extensionObject = Extension.lookupByUUID('improvedosk@stefan-k');
-          extensionSettings = extensionObject.openPreferences();
+          extensionSettings = ref_this.openPreferences();
         }
       });
 
@@ -207,7 +206,7 @@ export default class thisdoesmatternot extends Extension {
 
     // Set up the indicator in the status area
     if (settings.get_boolean("show-statusbar-icon")) {
-      _indicator = new OSKIndicator();
+      _indicator = new OSKIndicator(this);
       Main.panel.addToStatusArea("OSKIndicator", _indicator);
     }
 
