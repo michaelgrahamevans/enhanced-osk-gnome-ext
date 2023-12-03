@@ -430,7 +430,7 @@ export default class thisdoesmatternot extends Extension {
             if (keyval !== 0) {
               this._forwardModifiers(this._modifiers, Clutter.EventType.KEY_PRESS);
               this._keyboardController.keyvalPress(keyval);
-              GLib.timeout_add(GLib.PRIORITY_DEFAULT, KEY_RELEASE_TIMEOUT, () => {
+              keyReleaseTimeoutId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, KEY_RELEASE_TIMEOUT, () => {
                 this._keyboardController.keyvalRelease(keyval);
                 this._forwardModifiers(this._modifiers, Clutter.EventType.KEY_RELEASE);
                 //override start
