@@ -8,7 +8,6 @@ import {Extension, InjectionManager} from 'resource:///org/gnome/shell/extension
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as Keyboard from 'resource:///org/gnome/shell/ui/keyboard.js';
 import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
-import * as Me from './extension.js';
 
 const A11Y_APPLICATIONS_SCHEMA = "org.gnome.desktop.a11y.applications";
 const KEY_RELEASE_TIMEOUT = 100;
@@ -64,8 +63,7 @@ let OSKIndicator = GObject.registerClass(
   { GTypeName: "OSKIndicator" },
   class OSKIndicator extends PanelMenu.Button {
     _init(ref_this) {
-      //super._init(0.0, `${Me.metadata.name} Indicator`, false);
-      super._init(0.0, `Nometadata Indicator`, false);
+      super._init(0.0, `${ref_this.metadata.name} Indicator`, false);
 
       let icon = new St.Icon({
         icon_name: "input-keyboard-symbolic",
@@ -179,7 +177,7 @@ function override_addRowKeys(ref_this, keys, layout,index_row) {
 }
 
 // Extension
-export default class thisdoesmatternot extends Extension {
+export default class improvedosk extends Extension {
   constructor(metadata) {
     super(metadata);
   }
