@@ -182,10 +182,11 @@ function override_addRowKeys(ref_this, keys, layout,index_row) {
 export default class thisdoesmatternot extends Extension {
   constructor(metadata) {
     super(metadata);
-    this._injectionManager = new InjectionManager();
   }
 
   enable() {
+    this._injectionManager = new InjectionManager();
+
     settings = this.getSettings(
       "org.gnome.shell.extensions.improvedosk"
     );
@@ -447,6 +448,7 @@ export default class thisdoesmatternot extends Extension {
 
   disable_overrides() {
     this._injectionManager.clear();
+    this._injectionManager = null;
 
     // Unregister modified osk layouts resource file
     this.getModifiedLayouts()._unregister();
