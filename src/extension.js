@@ -16,11 +16,6 @@ const KEY_RELEASE_TIMEOUT = 100;
 
 //check how to get metadata
 
-let extensionObject, extensionSettings;
-let _oskA11yApplicationsSettings;
-let backup_touchMode;
-let currentSeat;
-let _indicator;
 let settings;
 let keyReleaseTimeoutId;
 
@@ -86,9 +81,8 @@ let OSKIndicator = GObject.registerClass(
           toggleOSK();
         }
 
-        // Don't open extension prefs if in unlock-dialog session mode
-        if (button == 3 && !isInUnlockDialogMode()) {
-          extensionSettings = ref_this.openPreferences();
+        if (button == 3) {
+          ref_this.openPreferences();
         }
       });
 
@@ -195,10 +189,10 @@ export default class thisdoesmatternot extends Extension {
     settings = this.getSettings(
       "org.gnome.shell.extensions.improvedosk"
     );
-    currentSeat = Clutter.get_default_backend().get_default_seat();
-    backup_touchMode = currentSeat.get_touch_mode;
+    this.currentSeat = Clutter.get_default_backend().get_default_seat();
+    this.backup_touchMode = this.currentSeat.get_touch_mode;
 
-    _oskA11yApplicationsSettings = new Gio.Settings({
+    this._oskA11yApplicationsSettings = new Gio.Settings({
       schema_id: A11Y_APPLICATIONS_SCHEMA,
     });
 
@@ -206,33 +200,33 @@ export default class thisdoesmatternot extends Extension {
 
     // Set up the indicator in the status area
     if (settings.get_boolean("show-statusbar-icon")) {
-      _indicator = new OSKIndicator(this);
-      Main.panel.addToStatusArea("OSKIndicator", _indicator);
+      this._indicator = new OSKIndicator(this);
+      Main.panel.addToStatusArea("OSKIndicator", this._indicator);
     }
 
     if (settings.get_boolean("force-touch-input")) {
-      currentSeat.get_touch_mode = () => true;
+      this.currentSeat.get_touch_mode = () => true;
     }
 
     let KeyboardIsSetup = this.tryDestroyKeyboard();
 
     this.enable_overrides();
 
-    settings.connect("changed::show-statusbar-icon", function () {
+    settings.connect("changed::show-statusbar-icon", () => {
       if (settings.get_boolean("show-statusbar-icon")) {
-        _indicator = new OSKIndicator();
-        Main.panel.addToStatusArea("OSKIndicator", _indicator);
-      } else if (_indicator !== null) {
-        _indicator.destroy();
-        _indicator = null;
+        this._indicator = new OSKIndicator(this);
+        Main.panel.addToStatusArea("OSKIndicator", this._indicator);
+      } else if (this._indicator !== null) {
+        this._indicator.destroy();
+        this._indicator = null;
       }
     });
 
-    settings.connect("changed::force-touch-input", function () {
+    settings.connect("changed::force-touch-input", () => {
       if (settings.get_boolean("force-touch-input")) {
-        currentSeat.get_touch_mode = () => true;
+        this.currentSeat.get_touch_mode = () => true;
       } else {
-        currentSeat.get_touch_mode = backup_touchMode;
+        this.currentSeat.get_touch_mode = this.backup_touchMode;
       }
     });
 
@@ -250,14 +244,14 @@ export default class thisdoesmatternot extends Extension {
   disable() {
     Main.layoutManager.removeChrome(Main.layoutManager.keyboardBox);
 
-    currentSeat.get_touch_mode = backup_touchMode;
+    this.currentSeat.get_touch_mode = this.backup_touchMode;
 
     let KeyboardIsSetup = this.tryDestroyKeyboard();
 
     // Remove indicator if it exists
-    if (_indicator instanceof OSKIndicator) {
-      _indicator.destroy();
-      _indicator = null;
+    if (this._indicator instanceof OSKIndicator) {
+      this._indicator.destroy();
+      this._indicator = null;
     }
 
     settings = null;
