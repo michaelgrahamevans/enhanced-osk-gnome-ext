@@ -53,11 +53,6 @@ class KeyboardModel {
   }
 }
 
-
-function isInUnlockDialogMode() {
-  return Main.sessionMode.currentMode === 'unlock-dialog';
-}
-
 // Indicator
 let OSKIndicator = GObject.registerClass(
   { GTypeName: "OSKIndicator" },
