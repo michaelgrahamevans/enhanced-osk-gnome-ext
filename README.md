@@ -24,7 +24,7 @@ It is not in gnome extensions yet!
 
 ### From source code
 Clone the repo, change into its root directory, run `package-extension.sh`,
-install and enable the extension:
+and install the extension:
 
 ```console
 git clone https://github.com/cass00/enhanced-osk-gnome-ext.git
