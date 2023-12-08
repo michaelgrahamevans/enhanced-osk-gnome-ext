@@ -3,7 +3,7 @@
 # Run this script to package all necessary extension files into a .zip
 
 root_dir=$PWD
-zip_filename="improvedosk@stefan-k.shell-extension.zip"
+zip_filename="enhancedosk@cass00.github.io.shell-extension.zip"
 
 # Remove existing .zip
 rm -f "$zip_filename"
@@ -24,7 +24,7 @@ cp LICENSE README.md src/*.js src/metadata.json dist/
 mkdir dist/data
 cp src/data/gnome-shell-osk-layouts.gresource dist/data/
 mkdir dist/schemas
-cp src/schemas/gschemas.compiled src/schemas/org.gnome.shell.extensions.improvedosk.gschema.xml dist/schemas/
+cp src/schemas/gschemas.compiled src/schemas/org.gnome.shell.extensions.enhancedosk.gschema.xml dist/schemas/
 
 # Add necessary extension files to archive
 cd dist/ || exit

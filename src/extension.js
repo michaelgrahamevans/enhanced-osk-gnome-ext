@@ -172,7 +172,7 @@ function override_addRowKeys(ref_this, keys, layout,index_row) {
 }
 
 // Extension
-export default class improvedosk extends Extension {
+export default class enhancedosk extends Extension {
   constructor(metadata) {
     super(metadata);
   }
@@ -181,7 +181,7 @@ export default class improvedosk extends Extension {
     this._injectionManager = new InjectionManager();
 
     settings = this.getSettings(
-      "org.gnome.shell.extensions.improvedosk"
+      "org.gnome.shell.extensions.enhancedosk"
     );
     this.currentSeat = Clutter.get_default_backend().get_default_seat();
     this.backup_touchMode = this.currentSeat.get_touch_mode;

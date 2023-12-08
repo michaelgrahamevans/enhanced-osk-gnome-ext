@@ -1,4 +1,4 @@
-# improved-osk-gnome-ext
+# enhanced-osk-gnome-ext
 
 Makes Gnome's OnScreen Keyboard more usable.
 
@@ -27,33 +27,37 @@ Clone the repo, change into its root directory, run `package-extension.sh`,
 install and enable the extension:
 
 ```console
-git clone https://github.com/cass00/improved-osk-gnome-ext.git
-cd ./improved-osk-gnome-ext
+git clone https://github.com/cass00/enhanced-osk-gnome-ext.git
+cd ./enhanced-osk-gnome-ext
 ./package-extension.sh
-gnome-extensions install improvedosk@stefan-k.shell-extension.zip
-gnome-extensions enable improvedosk@stefan-k
+gnome-extensions install enhancedosk@cass00.github.io.shell-extension.zip
+gnome-extensions enable enhancedosk@cass00.github.io
 ```
-After enabling extension, log out and back in to reload Gnome Shell.
+After installing the extension, log out and back in to reload Gnome Shell. Then enable the extension.
+
+```console
+gnome-extensions enable enhancedosk@cass00.github.io
+```
 
 ## FAQ
 ### My language layout doesn't have the additional keys.
 If the layout you're using does not have the extended keys, let me know, and I'll add them.
-Or, feel free to modify it yourself (see [/src/data/osk-layouts](https://github.com/cass00/improved-osk-gnome-ext/tree/master/src/data/osk-layouts) dir) and make a PR.
+Or, feel free to modify it yourself (see [/src/data/osk-layouts](https://github.com/cass00/enhanced-osk-gnome-ext/tree/master/src/data/osk-layouts) dir) and make a PR.
 
 ### How do I make a custom layout?
-You'll need to follow the manual installation process from [README](https://github.com/cass00/improved-osk-gnome-ext/blob/master/README.md#from-source-code),
+You'll need to follow the manual installation process from [README](https://github.com/cass00/enhanced-osk-gnome-ext/blob/master/README.md#from-source-code),
 but before running `package-extension.sh` you'll have to make changes to your preferred layout
-(see [osk-layouts](https://github.com/cass00/improved-osk-gnome-ext/tree/master/src/data/osk-layouts)), then continue with the installation process.
+(see [osk-layouts](https://github.com/cass00/enhanced-osk-gnome-ext/tree/master/src/data/osk-layouts)), then continue with the installation process.
 
 ### I want to test this extension with a new version of Gnome.
 To install the extension on an unsupported Gnome version, you can either add desired version number to `metadata.json` file and proceed with a manual installation,
-or disable extension version check and then install from [extensions.gnome.org](https://extensions.gnome.org/extension/4413/improved-osk/):
+or disable extension version check and then install from [extensions.gnome.org](https://extensions.gnome.org/extension/4413/enhanced-osk/):
 
 ```console
 gsettings set org.gnome.shell disable-extension-version-validation true
 ```
 
-See [TEST_CASES](https://github.com/cass00/improved-osk-gnome-ext/blob/master/TEST_CASES.md) for test cases.
+See [TEST_CASES](https://github.com/cass00/enhanced-osk-gnome-ext/blob/master/TEST_CASES.md) for test cases.
 
 ### Extension is installed and activated, but keyboard layout doesn't change.
 Gnome's default on-screen keyboard, on which this extension is based on,

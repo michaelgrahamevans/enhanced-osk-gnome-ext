@@ -6,7 +6,7 @@ import {ExtensionPreferences, gettext as _} from 'resource:///org/gnome/Shell/Ex
 
 export default class MyExtensionPreferences extends ExtensionPreferences {
   fillPreferencesWindow(window) {
-    window._settings = this.getSettings("org.gnome.shell.extensions.improvedosk");
+    window._settings = this.getSettings("org.gnome.shell.extensions.enhancedosk");
 
     const page = new Adw.PreferencesPage();
 
