@@ -31,7 +31,6 @@ git clone https://github.com/cass00/enhanced-osk-gnome-ext.git
 cd ./enhanced-osk-gnome-ext
 ./package-extension.sh
 gnome-extensions install enhancedosk@cass00.github.io.shell-extension.zip
-gnome-extensions enable enhancedosk@cass00.github.io
 ```
 After installing the extension, log out and back in to reload Gnome Shell. Then enable the extension.
 
