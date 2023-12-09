@@ -249,6 +249,8 @@ export default class enhancedosk extends Extension {
     }
 
     settings = null;
+    this._oskA11yApplicationsSettings = null;
+    this.currentSeat = null;
 
     if (keyReleaseTimeoutId) {
       GLib.Source.remove(keyReleaseTimeoutId);

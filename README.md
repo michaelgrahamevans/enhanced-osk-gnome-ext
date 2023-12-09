@@ -20,10 +20,10 @@ This extension is a fork of [nick-shmyrev/improved-osk-gnome-ext](https://github
 
 ### From extensions.gnome.org
 
-It is not in gnome extensions yet!
+https://extensions.gnome.org/extension/6595/enhanced-osk/
 
 ### From source code
-Clone the repo, change into its root directory, run `package-extension.sh`,
+Clone the repo, change into its root directory, run `package-extension.sh`
 and install the extension:
 
 ```console
