@@ -202,7 +202,7 @@ export default class enhancedosk extends Extension {
       this.currentSeat.get_touch_mode = () => true;
     }
 
-    let KeyboardIsSetup = this.tryDestroyKeyboard();
+    this.tryDestroyKeyboard();
 
     this.enable_overrides();
 
@@ -224,10 +224,8 @@ export default class enhancedosk extends Extension {
       }
     });
 
-    if (KeyboardIsSetup) {
-      Main.keyboard._syncEnabled();
-      Main.keyboard._keyboard._updateKeys(); //for testing
-    }
+    Main.keyboard._syncEnabled();
+    Main.keyboard._bottomDragAction.enabled = true;
 
     Main.layoutManager.addTopChrome(Main.layoutManager.keyboardBox, {
       affectsStruts: settings.get_boolean("resize-desktop"),
@@ -240,7 +238,7 @@ export default class enhancedosk extends Extension {
 
     this.currentSeat.get_touch_mode = this.backup_touchMode;
 
-    let KeyboardIsSetup = this.tryDestroyKeyboard();
+    this.tryDestroyKeyboard();
 
     // Remove indicator if it exists
     if (this._indicator instanceof OSKIndicator) {
@@ -259,10 +257,9 @@ export default class enhancedosk extends Extension {
 
     this.disable_overrides();
 
-    if (KeyboardIsSetup) {
-      Main.keyboard._syncEnabled();
-      Main.keyboard._keyboard._updateKeys(); //for testing
-    }
+    Main.keyboard._syncEnabled();
+    Main.keyboard._bottomDragAction.enabled = true;
+
     Main.layoutManager.addTopChrome(Main.layoutManager.keyboardBox);
   }
 
