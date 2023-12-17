@@ -289,6 +289,12 @@ export default class enhancedosk extends Extension {
             this.height = (monitor.height *
                            settings.get_int("portrait-height")) / 100;
           }
+
+          if (settings.get_boolean("show-suggestions")) {
+            this._suggestions?.show();
+          } else {
+            this._suggestions?.hide();
+          }
         }
       });
 

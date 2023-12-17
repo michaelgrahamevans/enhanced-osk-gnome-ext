@@ -15,6 +15,9 @@
     <key name="show-statusbar-icon" type="b">
       <default>false</default>
     </key>
+    <key name="show-suggestions" type="b">
+      <default>false</default>
+    </key>
     <key name="landscape-height" type="i">
       <default>33</default>
     </key>
