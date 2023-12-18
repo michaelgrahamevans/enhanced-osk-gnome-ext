@@ -27,6 +27,8 @@ export default class MyExtensionPreferences extends ExtensionPreferences {
                                    ignoreTouch.active);
       window._settings.set_boolean("force-touch-input",
                                    forceTouch.active);
+      window._settings.set_boolean("show-suggestions",
+                                   showSuggestions.active);
 
 		});
 		group.add(apply)
@@ -106,6 +108,17 @@ export default class MyExtensionPreferences extends ExtensionPreferences {
 		row_forcetouch.add_suffix(forceTouch);
 		row_forcetouch.activatable_widget = forceTouch;
 
+    const row_showSuggestions = new Adw.ActionRow({
+			title: _('Show Suggestion bar')
+		});
+		group.add(row_showSuggestions);
 
+    const showSuggestions = new Gtk.Switch({
+			active: window._settings.get_boolean("show-suggestions"),
+			valign: Gtk.Align.CENTER,
+		});
+
+		row_showSuggestions.add_suffix(showSuggestions);
+		row_showSuggestions.activatable_widget = showSuggestions;
   }
 }
