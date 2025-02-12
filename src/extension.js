@@ -438,7 +438,7 @@ export default class enhancedosk extends Extension {
       })
 
     this._injectionManager.overrideMethod(
-      Keyboard.Keyboard.prototype, '_toggleDelete',
+      Keyboard.Keyboard.prototype, 'toggleDelete',
       originalMethod => {
         return function (enabled) {
           if (this._deleteEnabled === enabled) return;
