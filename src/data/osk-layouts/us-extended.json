@@ -360,7 +360,7 @@
           },
           {
             "iconName": "edit-clear-symbolic",
-            "keyval": "0xff08",
+            "action": "delete",
             "width": 2
           }
         ],
@@ -622,7 +622,7 @@
           },
           {
             "iconName": "edit-clear-symbolic",
-            "keyval": "0xff08",
+            "action": "delete",
             "width": 1.5
           }
         ],
@@ -920,7 +920,7 @@
           },
           {
             "iconName": "edit-clear-symbolic",
-            "keyval": "0xff08",
+            "action": "delete",
             "width": 2
           }
         ],
