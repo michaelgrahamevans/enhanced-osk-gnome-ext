@@ -163,7 +163,7 @@ function override_addRowKeys(ref_this, keys, layout,index_row) {
     if (key.iconName === 'keyboard-shift-symbolic'){
       layout.shiftKeys.push(button);
       button.connect('long-press', () => {
-        ref_this._setActiveLevel(1);
+        ref_this._setActiveLevel('shift');
         ref_this._setLatched(true);
         ref_this._iscapslock = true;
       });
@@ -324,7 +324,7 @@ export default class enhancedosk extends Extension {
         return function (...args) {
           originalMethod.call(this, ...args);
           //track active level
-          this._activeLevel = 0;
+          this._activeLevel = 'default';
           //track capslock
           this._iscapslock = false;
         }
@@ -386,16 +386,16 @@ export default class enhancedosk extends Extension {
             //and do not activate modifier
             if (this._iscapslock){
               this._setLatched(false);
-              this._setActiveLevel(0);
+              this._setActiveLevel('default');
               this._iscapslock = false;
               this._disableAllModifiers();
             }
             //otherwise switch between layers
             else{
-              if (this._activeLevel == 1){
-                this._setActiveLevel(0)}
+              if (this._activeLevel == 'shift'){
+                this._setActiveLevel('default')}
               else{
-                this._setActiveLevel(1);
+                this._setActiveLevel('shift');
               }
               this._setModifierEnabled(keyval, !isActive);
             }
