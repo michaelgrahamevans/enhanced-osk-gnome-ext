@@ -21,18 +21,7 @@ let keyReleaseTimeoutId;
 //Model class for _addrowKeys emulation
 class KeyboardModel {
   constructor(groupName) {
-    let names = [groupName];
-    if (groupName.includes('+'))
-      names.push(groupName.replace(/\+.*/, ''));
-    names.push('us');
-
-    for (let i = 0; i < names.length; i++) {
-      try {
-        this._model = this._loadModel(names[i]);
-        break;
-      } catch (e) {
-      }
-    }
+    this._model = this._loadModel(groupName);
   }
 
   _loadModel(groupName) {
