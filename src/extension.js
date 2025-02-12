@@ -334,29 +334,7 @@ export default class enhancedosk extends Extension {
       Keyboard.Keyboard.prototype, '_setActiveLevel',
       originalMethod => {
         return function (activeLevel) {
-          let activeGroupName = this._keyboardController.getCurrentGroup();
-          let layers = this._groups[activeGroupName];
-          let currentPage = layers[activeLevel];
-          
-          if (this._currentPage === currentPage) {
-            this._updateCurrentPageVisible();
-            return;
-          }
-
-          if (this._currentPage != null) {
-            this._setCurrentLevelLatched(this._currentPage, false);
-            this._currentPage.disconnect(this._currentPage._destroyID);
-            this._currentPage.hide();
-            delete this._currentPage._destroyID;
-          }
-
-          this._currentPage = currentPage;
-          this._currentPage._destroyID = this._currentPage.connect('destroy', () => {
-            this._currentPage = null;
-          });
-          this._updateCurrentPageVisible();
-          this._aspectContainer.setRatio(...this._currentPage.getRatio());
-          this._emojiSelection.setRatio(...this._currentPage.getRatio());
+          originalMethod.call(this, activeLevel);
           //track the active level
           this._activeLevel = activeLevel;
         }
