@@ -95,22 +95,6 @@ function toggleOSK() {
   }
 }
 
-function override_getCurrentGroup() {
-  // Special case for Korean, if Hangul mode is disabled, use the 'us' keymap
-  if (this._currentSource.id === 'hangul') {
-    const inputSourceManager = InputSourceManager.getInputSourceManager();
-    const currentSource = inputSourceManager.currentSource;
-    let prop;
-    for (let i = 0; (prop = currentSource.properties.get(i)) !== null; ++i) {
-      if (prop.get_key() === 'InputMode' &&
-          prop.get_prop_type() === IBus.PropType.TOGGLE &&
-          prop.get_state() !== IBus.PropState.CHECKED)
-        return 'us';
-    }
-  }
-  return this._currentSource.xkbId;
-}
-
 function addition_createLayersforGroup(ref_this,groupName) {
   //console.log("osk: JS ERROR Running addition_create");
   //Idea: emulate _createLayersForGroup
@@ -301,15 +285,6 @@ export default class enhancedosk extends Extension {
         return function (...args) {
           let out = originalMethod.call(this, ...args);
           return settings.get_boolean("ignore-touch-input") ? false : out;
-        }
-      });
-
-    this._injectionManager.overrideMethod(
-      Keyboard.Keyboard.prototype, '_init',
-      originalMethod => {
-        return function (...args) {
-          originalMethod.call(this, ...args);
-          this._keyboardController.getCurrentGroup = override_getCurrentGroup;
         }
       });
 
