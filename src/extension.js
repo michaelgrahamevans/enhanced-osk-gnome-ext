@@ -163,7 +163,7 @@ function override_addRowKeys(ref_this, keys, layout,index_row) {
     if (key.iconName === 'keyboard-shift-symbolic'){
       layout.shiftKeys.push(button);
       button.connect('long-press', () => {
-        ref_this._setActiveLayer(1);
+        ref_this._setActiveLevel(1);
         ref_this._setLatched(true);
         ref_this._iscapslock = true;
       });
@@ -324,14 +324,14 @@ export default class enhancedosk extends Extension {
         return function (...args) {
           originalMethod.call(this, ...args);
           //track active level
-          this._activelayer = 0;
+          this._activeLevel = 0;
           //track capslock
           this._iscapslock = false;
         }
       });
 
     this._injectionManager.overrideMethod(
-      Keyboard.Keyboard.prototype, '_setActiveLayer',
+      Keyboard.Keyboard.prototype, '_setActiveLevel',
       originalMethod => {
         return function (activeLevel) {
           let activeGroupName = this._keyboardController.getCurrentGroup();
@@ -358,7 +358,7 @@ export default class enhancedosk extends Extension {
           this._aspectContainer.setRatio(...this._currentPage.getRatio());
           this._emojiSelection.setRatio(...this._currentPage.getRatio());
           //track the active level
-          this._activelayer = activeLevel;
+          this._activeLevel = activeLevel;
         }
       });
 
@@ -386,16 +386,16 @@ export default class enhancedosk extends Extension {
             //and do not activate modifier
             if (this._iscapslock){
               this._setLatched(false);
-              this._setActiveLayer(0);
+              this._setActiveLevel(0);
               this._iscapslock = false;
               this._disableAllModifiers();
             }
             //otherwise switch between layers
             else{
-              if (this._activelayer == 1){
-                this._setActiveLayer(0)}
+              if (this._activeLevel == 1){
+                this._setActiveLevel(0)}
               else{
-                this._setActiveLayer(1);
+                this._setActiveLevel(1);
               }
               this._setModifierEnabled(keyval, !isActive);
             }
