@@ -299,13 +299,8 @@ export default class enhancedosk extends Extension {
       Keyboard.KeyboardManager.prototype, '_lastDeviceIsTouchscreen',
       originalMethod => {
         return function (...args) {
-          if (!this._lastDevice)
-            return false;
-
-          let deviceType = this._lastDevice.get_device_type();
-          return settings.get_boolean("ignore-touch-input")
-            ? false
-            : deviceType === Clutter.InputDeviceType.TOUCHSCREEN_DEVICE;
+          let out = originalMethod.call(this, ...args);
+          return settings.get_boolean("ignore-touch-input") ? false : out;
         }
       });
 
