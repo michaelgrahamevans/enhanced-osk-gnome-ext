@@ -155,7 +155,6 @@
         [
           {
             "action": "modifier",
-            "keyval": "0xffe1",
             "iconName": "keyboard-shift-symbolic",
             "width": 1.5,
             "level": "shift"
@@ -221,7 +220,6 @@
           },
           {
             "action": "modifier",
-            "keyval": "0xffe1",
             "iconName": "keyboard-shift-symbolic",
             "width": 2,
             "level": "shift"
@@ -439,7 +437,6 @@
         [
           {
             "action": "modifier",
-            "keyval": "0xffe1",
             "iconName": "keyboard-shift-symbolic",
             "width": 1.5,
             "level": "default"
@@ -505,7 +502,6 @@
           },
           {
             "action": "modifier",
-            "keyval": "0xffe1",
             "iconName": "keyboard-shift-symbolic",
             "level": "default",
             "width": 2
