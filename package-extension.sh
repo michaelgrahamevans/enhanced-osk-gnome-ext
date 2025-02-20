@@ -1,4 +1,5 @@
-#!/bin/sh
+#!/usr/bin/env nix-shell
+#!nix-shell -p glib zip -i bash
 
 # Run this script to package all necessary extension files into a .zip
 
