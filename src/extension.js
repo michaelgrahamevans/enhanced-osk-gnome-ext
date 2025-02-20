@@ -137,7 +137,6 @@ function override_addRowKeys(ref_this, keys, layout,index_row) {
       button.connect('long-press', () => {
         ref_this._setActiveLevel('shift');
         ref_this._setLatched(true);
-        ref_this._iscapslock = true;
       });
     }
   }
@@ -288,8 +287,6 @@ export default class enhancedosk extends Extension {
           originalMethod.call(this, ...args);
           //track active level
           this._activeLevel = 'default';
-          //track capslock
-          this._iscapslock = false;
         }
       });
 
@@ -305,81 +302,6 @@ export default class enhancedosk extends Extension {
       });
 
     // Override toggleDelete to simplify it's logic so that it does not skip over characters
-    this._injectionManager.overrideMethod(
-      Keyboard.Keyboard.prototype, '_ensureKeysForGroup',
-      originalMethod => {
-        return function (group) {
-          if (!this._groups[group]){
-            this._groups[group] = this._createLayersForGroup(group);
-            addition_createLayersforGroup(this,group);
-          }
-        }
-      });
-
-    //Allow level switching even though shift has
-    //action: modifier
-    this._injectionManager.overrideMethod(
-      Keyboard.Keyboard.prototype, '_toggleModifier',
-      originalMethod => {
-        return function (keyval) {
-          const isActive = this._modifiers.has(keyval);
-          const SHIFT_KEYVAL = '0xffe1';
-          if (keyval === SHIFT_KEYVAL){
-            //if capslock on just go back to layer 0
-            //and do not activate modifier
-            if (this._iscapslock){
-              this._setLatched(false);
-              this._setActiveLevel('default');
-              this._iscapslock = false;
-              this._disableAllModifiers();
-            }
-            //otherwise switch between layers
-            else{
-              if (this._activeLevel == 'shift'){
-                this._setActiveLevel('default')}
-              else{
-                this._setActiveLevel('shift');
-              }
-              this._setModifierEnabled(keyval, !isActive);
-            }
-          }
-          else{
-            this._setModifierEnabled(keyval, !isActive);
-          };
-        }
-      });
-
-    this._injectionManager.overrideMethod(
-      Keyboard.Keyboard.prototype, '_commitAction',
-      originalMethod => {
-        return async function (keyval,str) {
-          if (this._modifiers.size === 0 && str !== '' &&
-              keyval && this._oskCompletionEnabled) {
-            if (await Main.inputMethod.handleVirtualKey(keyval))
-              return;
-          }
-
-          if (str === '' || !Main.inputMethod.currentFocus ||
-              (keyval && this._oskCompletionEnabled) ||
-              this._modifiers.size > 0 ||
-              !this._keyboardController.commitString(str, true)) {
-            if (keyval !== 0) {
-              this._forwardModifiers(this._modifiers, Clutter.EventType.KEY_PRESS);
-              this._keyboardController.keyvalPress(keyval);
-              keyReleaseTimeoutId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, KEY_RELEASE_TIMEOUT, () => {
-                this._keyboardController.keyvalRelease(keyval);
-                this._forwardModifiers(this._modifiers, Clutter.EventType.KEY_RELEASE);
-                //override start
-                if (!this._iscapslock)
-                  this._disableAllModifiers();
-                //override end
-                return GLib.SOURCE_REMOVE;
-              });
-            }
-          }
-        }
-      })
-
     this._injectionManager.overrideMethod(
       Keyboard.Keyboard.prototype, 'toggleDelete',
       originalMethod => {
