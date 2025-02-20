@@ -1,4 +1,3 @@
-//import { Gio, GLib, St, Clutter, GObject } from 'gi://';
 import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
 import St from 'gi://St';
