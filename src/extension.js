@@ -17,30 +17,6 @@ const KEY_RELEASE_TIMEOUT = 100;
 let settings;
 let keyReleaseTimeoutId;
 
-//Model class for _addRowKeys emulation
-class KeyboardModel {
-  constructor(groupName) {
-    this._model = this._loadModel(groupName);
-  }
-
-  _loadModel(groupName) {
-    const file = Gio.File.new_for_uri(
-      `resource:///org/gnome/shell/osk-layouts/${groupName}.json`);
-    let [success_, contents] = file.load_contents(null);
-
-    const decoder = new TextDecoder();
-    return JSON.parse(decoder.decode(contents));
-  }
-
-  getLevels() {
-    return this._model.levels;
-  }
-
-  getKeysForLevel(levelName) {
-    return this._model.levels.find(level => level === levelName);
-  }
-}
-
 // Indicator
 let OSKIndicator = GObject.registerClass(
   { GTypeName: "OSKIndicator" },
@@ -80,65 +56,6 @@ function toggleOSK() {
   if (Main.keyboard._keyboard !== null ){
     if (Main.keyboard._keyboard._keyboardVisible) return Main.keyboard.close();
     Main.keyboard.open(Main.layoutManager.bottomIndex);
-  }
-}
-
-function addition_createLayersforGroup(ref_this,groupName) {
-  //console.log("osk: JS ERROR Running addition_create");
-  //Idea: emulate _createLayersForGroup
-  //copy over KeyboardModel class to here as extra class (not complex)
-  //shiftKeys needs to be repopulated
-  //loadRows directly in
-  //check appendRow
-  //then comes _addRowKeys
-  //there instead of creating new button we load button from layout
-  // then we disconnect button
-  // then run all the rest of  wthe overwrite function
-  // without appendKey function
-
-  //Note: This is all necessary because Key class in keyboard.js is not exported
-  //if exported then the original override_addRowKeys can be used
-
-  //a is layers array that contains all layouts
-  //let a =  ref_this._groups[ref_this._keyboardController.getCurrentGroup()];
-  //a[n] is nth layout; then _rows[n] nth row;
-  //keys[n] nth keyInfo (check appendKey function;
-  //.key gives you then the key class
-  //let b = a[0]._rows[0].keys[0].key
-  //b.disconnect()
-  //b.connect('released', () => {ref_this.close();});
-  let keyboardModel = new KeyboardModel(groupName);
-  let layers = ref_this._groups[ref_this._keyboardController.getCurrentGroup()];
-  let levels = keyboardModel.getLevels();
-  for (let i = 0; i < levels.length; i++) {
-  //for (let i = 0; i < 0; i++) {
-    let currentLevel = levels[i];
-    let level = i >= 1 && levels.length === 3 ? i + 1 : i;
-    let layout = layers[level]
-    layout.shiftKeys = [];
-    layout.mode = currentLevel.mode;
-    //this._loadRows(currentLevel, level, levels.length, layout);
-    //_loadRows(model, level, numLevels, layout) {
-    let rows = currentLevel.rows;
-    for (let j = 0; j < rows.length; ++j) {
-      override_addRowKeys(ref_this,rows[j], layout,j);
-    }
-    layout.hide();
-  }
-}
-
-function override_addRowKeys(ref_this, keys, layout,index_row) {
-  for (let i = 0; i < keys.length; ++i) {
-    const key = keys[i];
-    let button = layout._rows[index_row].keys[i].key
-
-    if (key.iconName === 'keyboard-shift-symbolic'){
-      layout.shiftKeys.push(button);
-      button.connect('long-press', () => {
-        ref_this._setActiveLevel('shift');
-        ref_this._setLatched(true);
-      });
-    }
   }
 }
 
