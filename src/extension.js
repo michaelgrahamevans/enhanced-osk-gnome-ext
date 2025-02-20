@@ -17,7 +17,7 @@ const KEY_RELEASE_TIMEOUT = 100;
 let settings;
 let keyReleaseTimeoutId;
 
-//Model class for _addrowKeys emulation
+//Model class for _addRowKeys emulation
 class KeyboardModel {
   constructor(groupName) {
     this._model = this._loadModel(groupName);
@@ -247,6 +247,7 @@ export default class enhancedosk extends Extension {
   }
 
   enable_overrides() {
+    // Override _relayout so that the keyboard height and suggestions can be modified by the extension settings
     this._injectionManager.overrideMethod(
       Keyboard.Keyboard.prototype, '_relayout',
       originalMethod => {
@@ -270,6 +271,7 @@ export default class enhancedosk extends Extension {
         }
       });
 
+    // Override _lastDeviceIsTouchscreen so that touch inputs can be ignored through an extension setting
     this._injectionManager.overrideMethod(
       Keyboard.KeyboardManager.prototype, '_lastDeviceIsTouchscreen',
       originalMethod => {
@@ -291,6 +293,7 @@ export default class enhancedosk extends Extension {
         }
       });
 
+    // Override _setActiveLevel so that the active level can be tracked
     this._injectionManager.overrideMethod(
       Keyboard.Keyboard.prototype, '_setActiveLevel',
       originalMethod => {
@@ -301,6 +304,7 @@ export default class enhancedosk extends Extension {
         }
       });
 
+    // Override toggleDelete to simplify it's logic so that it does not skip over characters
     this._injectionManager.overrideMethod(
       Keyboard.Keyboard.prototype, '_ensureKeysForGroup',
       originalMethod => {
